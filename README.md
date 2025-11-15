@@ -14,6 +14,7 @@ putting requirements together in Python, but I'm not gonna do that yet.
 
  * Nodes (Data objects. See Design Overview)
  * Python API for Nodes
+ * Javascript API for Nodes
  
  Nodes are just data. They can be fit together in any way, but there
  is almost nothing right now that actually does so. You can just stick
