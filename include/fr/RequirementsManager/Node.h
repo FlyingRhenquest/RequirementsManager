@@ -38,7 +38,7 @@ namespace fr::RequirementsManager {
    * this specifies the basic API of all those entities
    */
 
-  struct Node {
+  struct Node : public std::enable_shared_from_this<Node> {
     using PtrType = std::shared_ptr<Node>;
 
     // Use up for things like parent(s), required-by, owner(s), etc
@@ -66,11 +66,8 @@ namespace fr::RequirementsManager {
     // rerun init() on the copy if you want it to be a different
     // entity with the same up/down lists.
     Node(const Node& copy) = default;
-    Node(Node&& toMove) = default;
     virtual ~Node() = default;
     
-    virtual Node& operator=(Node&& toMove) = default;
-
     // Set the id field
     virtual void init() {
       changed = true;
@@ -102,7 +99,7 @@ namespace fr::RequirementsManager {
       std::stringstream stream;
       {
 	cereal::JSONOutputArchive archive(stream);
-	archive(cereal::make_nvp(getNodeType(), *this));
+	archive(cereal::make_nvp(getNodeType(), shared_from_this()));
       }
       return stream.str();
     }
@@ -121,7 +118,7 @@ namespace fr::RequirementsManager {
       ar(uuid_str);
       id = generator(uuid_str);
       ar(up);
-      ar(down);      
+      ar(down);
     }
 
   };

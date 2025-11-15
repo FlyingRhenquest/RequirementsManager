@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(RequirementsManager)
+project(RequirementsManager CXX)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
@@ -9,9 +9,75 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(PkgConfig)
-find_package(Boost 1.86 CONFIG REQUIRED COMPONENTS uuid)
-find_package(Python REQUIRED COMPONENTS Interpreter Development)
-find_package(nanobind CONFIG REQUIRED)
+find_package(Boost 1.90 CONFIG QUIET COMPONENTS uuid)
+find_package(cereal CONFIG QUIET)
+set(USING_BOOST_EXTERNAL FALSE)
+set(USING_CEREAL_EXTERNAL FALSE)
+
+include(ExternalProject)
+
+if (NOT Boost_FOUND)
+  set(USING_BOOST_EXTERNAL TRUE)
+  if (WINDOWS)
+    set(BOOST_BOOTSTRAP "./bootstrap.bat")
+  else()
+    set(BOOST_BOOTSTRAP "./bootstrap.sh")
+  endif()
+
+  if (EMSCRIPTEN)
+    set(BOOST_EMSCRIPTEN_TOOLSET="toolset=empscripten")
+  else()
+    set(BOOST_EMSCRIPTEN_TOOLSET="")
+  endif()
+
+  set(BOOST_EXTERNAL_PREFIX "BoostExternal")
+  set(BOOST_EXTERNAL_SOURCE "${BOOST_EXTERNAL_PREFIX}/source")
+  set(BOOST_EXTERNAL_INSTALL "${BOOST_EXTERNAL_PREFIX}/install")
+  
+  # Build Boost Depdendencies. This is very likely to e
+  # required in emscripten or for the rare C++ developer
+  # who doesn't actually have Boost installed on their
+  # system. I just need uuid for this project, so
+  # it should be fairly painless to build as part of
+  # this system. I'm planning to only build it statically
+  # though, since the main use case of this fork in the
+  # code is emscripten and that'll want static libraries.
+  
+  ExternalProject_Add(BoostExternal
+    GIT_REPOSITORY "https://github.com/boostorg/boost.git"
+    GIT_SUBMODULES "libs/uuid" "libs/config" "libs/system" "libs/headers" "libs/type_traits" "libs/throw_exception" "libs/assert" "libs/static_assert" "tools/build" "tools/boost_install"
+    GIT_SUBMODULES_RECURSE FALSE
+    PREFIX "${BOOST_EXTERNAL_PREFIX}"
+    BUILD_IN_SOURCE TRUE
+    CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=<INSTALL_DIR>
+    BUILD_COMMAND "./b2" "${BOOST_EMSCRIPTEN_TOOLSET}" "variant=release" "link=static" "--with-uuid" "--build-dir=${CMAKE_CURRENT_BINARY_DIR}/${BOOST_EXTERNAL_BUILD}" --prefix=<INSTALL_DIR> install
+     INSTALL_COMMAND ""       
+  )
+
+  ExternalProject_Get_Property(BoostExternal INSTALL_DIR)  
+  set(Boost_INCLUDE_DIRS "${INSTALL_DIR}/include")
+    
+endif()
+
+if (NOT cereal_FOUND)
+  set(USING_CEREAL_EXTERNAL TRUE)
+  set(CEREAL_EXTERNAL_PREFIX "CerealExternal")
+  set(CEREAL_EXTERNAL_SOURCE "${CEREAL_EXTERNAL_PREFIX}/source")
+  set(CEREAL_EXTERNAL_BUILD "${CEREAL_EXTERNAL_PREFIX}/build")
+  set(CEREAL_EXTERNAL_INSTALL "${CEREAL_EXTERNAL_PREFIX}/install")
+  
+  ExternalProject_Add(CerealExternal
+    GIT_REPOSITORY "https://github.com/USCiLab/cereal.git"
+    PREFIX "${CEREAL_EXTERNAL_PREFIX}"
+    SOURCE_DIR "${CEREAL_EXTERNAL_SOURCE}"
+    BINARY_DIR "${CEREAL_EXTERNAL_BUILD}"
+    INSTALL_DIR "${CEREAL_EXTERNAL_INSTALL}"
+    CMAKE_ARGS -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+  )
+
+  ExternalProject_Get_Property(CerealExternal INSTALL_DIR)
+  set(cereal_INCLUDE_DIRS "${INSTALL_DIR}/include")
+  endif()  
 
 option(BUILD_TESTS "Build unit tests" ON)
 set(HEADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/fr/RequirementsManager")
@@ -34,34 +100,76 @@ set(LIBRARY_SOURCE
   "${CMAKE_CURRENT_SOURCE_DIR}/src/NodeConnector.cpp"
 )
 
-add_library(RequirementsManager SHARED
-  ${LIBRARY_SOURCE}
-)
-add_library(FR::RequirementsManager ALIAS RequirementsManager)
+# If we're not building the enscripten wasm bindings,
+# build the library and python bindings as usual
 
-set_target_properties(RequirementsManager PROPERTIES
-  FRAMEWORK TRUE
-  PUBLIC_HEADER "${HEADER_LIST}"
-)
+if (NOT EMSCRIPTEN)
+  find_package(Python REQUIRED COMPONENTS Interpreter Development)
+  find_package(nanobind CONFIG REQUIRED)
+  
+  message(STATUS "Building C++ native library and python bindings")
+  
+  add_library(RequirementsManager SHARED
+    ${LIBRARY_SOURCE}
+  )  
+  
+  add_library(FR::RequirementsManager ALIAS RequirementsManager)
+  nanobind_add_module(FRRequirements
+    NB_STATIC STABLE_ABI FREE_THREADED
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/RequirementsManagerPythonApi.cpp
+  )
 
-target_include_directories(RequirementsManager
-  PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-)
+  set_target_properties(RequirementsManager PROPERTIES
+    FRAMEWORK TRUE
+    PUBLIC_HEADER "${HEADER_LIST}"
+  )
 
-nanobind_add_module(FRRequirements
-  NB_STATIC STABLE_ABI FREE_THREADED
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/RequirementsManagerPythonApi.cpp
-)
+  target_include_directories(RequirementsManager
+    PUBLIC
+    ${Boost_INCLUDE_DIRS}
+    ${cereal_INCLUDE_DIRS}
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
 
-target_include_directories(FRRequirements PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-)
+  target_include_directories(FRRequirements PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
 
-target_link_libraries(FRRequirements PUBLIC FR::RequirementsManager)
+  target_link_libraries(FRRequirements PUBLIC FR::RequirementsManager)
 
-if (BUILD_TESTS)
-  add_subdirectory(test)
+  if (BUILD_TESTS)
+    add_subdirectory(test)
+  endif()
+else()
+  message(STATUS "Bulding emscripten bindings")
+  set(EMSCRIPTEN_LIBRARY_SOURCE
+    ${LIBRARY_SOURCE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/EmscriptenApi.cpp
+  )
+
+  add_library(FRRequirementsManagerLib STATIC
+    ${LIBRARY_SOURCE}
+  )
+
+  set_target_properties(FRRequirementsManagerLib PROPERTIES
+    OUTPUT_NAME FRRequirementsManager_wasm
+  )
+
+  target_include_directories(FRRequirementsManagerLib PUBLIC
+    "${Boost_INCLUDE_DIRS}"
+    "${cereal_INCLUDE_DIRS}"
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  
+  add_executable(FRRequirementsManagerModule
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/EmscriptenApi.cpp
+  )
+
+  target_link_libraries(FRRequirementsManagerModule PRIVATE FRRequirementsManagerLib)
+
+  target_link_options(FRRequirementsManagerModule PRIVATE "-sSINGLE_FILE=1" "-sMODULARIZE" "-sEXPORT_NAME=FRRequirementsManager" "--bind")
+
 endif()

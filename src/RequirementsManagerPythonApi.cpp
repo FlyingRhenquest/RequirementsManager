@@ -121,8 +121,7 @@ NB_MODULE(FRRequirements, m) {
     .def("setFunctional", &Requirement::setFunctional, "Set whether the requirement is functional or non-functional. Pass it a True/False")
     .def("getTitle", &Requirement::getTitle, "Get the requirement title")
     .def("getText", &Requirement::getText, "Get the requirement text")
-    .def("isFunctional", &Requirement::isFunctional, "Returns true if the requirement is a functional requirement")
-    .def("to_json", &Requirement::to_json, "Returns JSON representation of this requirement, including the entire graph of up/down nodes");
+    .def("isFunctional", &Requirement::isFunctional, "Returns true if the requirement is a functional requirement");
 
   nanobind::class_<Story, CommitableNode>(m, "Story")
     .def(nanobind::new_([](){return std::make_shared<Story>();}))

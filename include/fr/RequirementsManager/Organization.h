@@ -35,7 +35,9 @@ namespace fr::RequirementsManager {
 
   class Organization : public Node {
   public:
-    using PtrType = std::shared_ptr<Organization>;
+    using Type = Organization;
+    using PtrType = std::shared_ptr<Type>;
+    using Parent = Node;
 
   private:
     // Lock organization to prevent changes (You can still add/remove nodes though.)
@@ -77,7 +79,7 @@ namespace fr::RequirementsManager {
 
     template <class Archive>
     void save(Archive &ar) const {
-      ar(cereal::make_nvp("Node", cereal::base_class<Node>(this)));
+      ar(cereal::make_nvp(Parent::getNodeType(), cereal::base_class<Parent>(this)));
       ar(cereal::make_nvp("locked", _locked));
       ar(cereal::make_nvp("name", _name));
     }

@@ -34,3 +34,15 @@ TEST(Organization, BasicFunctionality) {
   }
   ASSERT_TRUE(threw);
 }
+
+TEST(Organization, TestToJson) {
+  auto org = std::make_shared<Organization>();
+  org->init();
+  org->setName("Inc, Inc.");
+  auto json = org->to_json();
+  // Search for fields in the JSON
+  ASSERT_NE(json.find("id"), std::string::npos);
+  ASSERT_NE(json.find("locked"), std::string::npos);
+  ASSERT_NE(json.find("name"), std::string::npos);
+  ASSERT_NE(json.find("Inc, Inc."), std::string::npos);
+}

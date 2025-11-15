@@ -69,14 +69,15 @@ namespace fr::RequirementsManager {
     template <class Archive>
     void save(Archive &ar) const {
       ar(cereal::make_nvp(Parent::getNodeType(), cereal::base_class<Parent>(this)));
-      ar(_title);
-      ar(_description);      
+      ar(cereal::make_nvp("title", _title));
+      ar(cereal::make_nvp("description", _description));
     }
 
     template <class Archive>
     void load(Archive &ar) {
       ar(cereal::base_class<Parent>(this));
-      
+      ar(_title);
+      ar(_description);
     }
     
   };

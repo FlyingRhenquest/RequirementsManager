@@ -95,16 +95,6 @@ namespace fr::RequirementsManager {
     bool isFunctional() const {
       return _functional;
     }
-
-    // Return JSON representation of this requirement.    
-    virtual std::string to_json() override {
-      std::stringstream stream;
-      {
-	cereal::JSONOutputArchive archive(stream);
-	archive(cereal::make_nvp(getNodeType(), *this));
-      }
-      return stream.str();
-    }
     
     // Serilization functions -- since the object we're inheriting
     // from uses load and save, we need to do the same (Can't switch
