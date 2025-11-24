@@ -337,7 +337,7 @@ namespace fr::RequirementsManager {
 
     std::string getWho() const {
       return _who;
-    };
+    }
 
     void setWho(const std::string& who) {
       _who = who;
