@@ -27,6 +27,9 @@ namespace fr::RequirementsManager {
       child->init();
     }
 
+    parent->changed = true;
+    child->changed = true;
+
     parent->down.push_back(child);
     child->up.push_back(parent);
   }

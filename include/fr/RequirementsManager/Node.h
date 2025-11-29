@@ -27,6 +27,7 @@
 #include <iostream>
 #include <list>
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <string>
 
@@ -41,6 +42,10 @@ namespace fr::RequirementsManager {
   struct Node : public std::enable_shared_from_this<Node> {
     using PtrType = std::shared_ptr<Node>;
 
+    // Lock nodeMutex before changing values, serializing/deserializing
+    // or storing the node in a database. Always release the
+    // mutex as soon as possible after locking it.
+    mutable std::mutex nodeMutex;
     // Use up for things like parent(s), required-by, owner(s), etc
     std::vector<PtrType> up;
     // Use down for things like children, requires, owned things, etc
@@ -70,6 +75,7 @@ namespace fr::RequirementsManager {
     
     // Set the id field
     virtual void init() {
+      std::lock_guard<std::mutex> lock(nodeMutex);
       changed = true;
       initted = true;
       boost::uuids::time_generator_v7 generator;
@@ -96,6 +102,8 @@ namespace fr::RequirementsManager {
     // using the cerial serialization functions
     
     virtual std::string to_json() {
+      // Should not need to lock here, because the serializers already
+      // do.
       std::stringstream stream;
       {
 	cereal::JSONOutputArchive archive(stream);
@@ -106,6 +114,7 @@ namespace fr::RequirementsManager {
 
     template <class Archive>
     void save(Archive& ar) const {
+      std::lock_guard<std::mutex> lock(nodeMutex);
       ar(cereal::make_nvp("id", boost::uuids::to_string(id)));
       ar(cereal::make_nvp("upList", up));
       ar(cereal::make_nvp("downList", down));
@@ -113,6 +122,7 @@ namespace fr::RequirementsManager {
 
     template <class Archive>
     void load(Archive& ar) {
+      std::lock_guard<std::mutex> lock(nodeMutex);
       boost::uuids::string_generator generator;
       std::string uuid_str;
       ar(uuid_str);

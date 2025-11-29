@@ -631,6 +631,42 @@ namespace fr::RequirementsManager {
     
   };
 
+  class EmailAddress : public Node {
+    std::string _address;
+
+  public:
+    using Type = EmailAddress;
+    using PtrType = std::shared_ptr<Type>;
+    using Parent = Node;
+
+    EmailAddress() = default;
+    virtual ~EmailAddress() = default;
+
+    std::string getNodeType() const override {
+      return "EmailAddress";
+    }
+    
+    void setAddress(const std::string& address) {
+      _address = address;
+    }
+
+    std::string getAddress() const {
+      return _address;
+    }
+
+    template <class Archive>
+    void save(Archive &ar) const {
+      ar(cereal::make_nvp(Parent::getNodeType(), cereal::base_class<Parent>(this)));
+      ar(cereal::make_nvp("address", _address));
+    }
+
+    template <class Archive>
+    void load(Archive &ar) {
+      ar(cereal::base_class<Parent>(this));
+      ar(_address);
+    }
+  };
+
   /**
    * A phone number that could be dropped into the down node
    * of a Person or something.
@@ -725,6 +761,10 @@ namespace fr::RequirementsManager {
     InternationalAddress() = default;
     virtual ~InternationalAddress() = default;
 
+    std::string getNodeType() const override {
+      return "InternationalAddress";
+    }
+
     void setCountryCode(const std::string &countryCode) {
       _countryCode = countryCode;
     }
@@ -778,6 +818,84 @@ namespace fr::RequirementsManager {
       ar(_addressLines);
       ar(_locality);
       ar(_postalCode);
+    }
+    
+  };
+
+  /**
+   * USAddress funnily does NOT inherit from InternationalAddress
+   */
+
+  class USAddress : public Node {
+    Text::PtrType _addressLines;
+    std::string _city;
+    std::string _state;
+    std::string _zipCode;
+
+  public:
+    using Type = USAddress;
+    using PtrType = std::shared_ptr<Type>;
+    using Parent = Node;
+
+    USAddress() = default;
+    virtual ~USAddress() = default;
+
+    std::string getNodeType() const override {
+      return "USAddress";
+    }
+
+    // Like InternationaAddress, just construct your address
+    // lines from text nodes and drop the whole structure in
+    // here (one node per address line)
+    void setAddressLines(Text::PtrType addressLines) {
+      _addressLines = addressLines;
+    }
+
+    void setCity(const std::string& city) {
+      _city = city;
+    }
+
+    void setState(const std::string& state) {
+      _state = state;
+    }
+
+    void setZipCode(const std::string &zipCode) {
+      _zipCode = zipCode;
+    }
+
+    // Can't guarantee this is const since we're returning a pointer
+    Text::PtrType getAddressLines() {
+      return _addressLines;
+    }
+
+    std::string getCity() const {
+      return _city;
+    }
+
+    std::string getState() const {
+      return _state;
+    }
+
+    std::string getZipCode() const {
+      return _zipCode;
+    }
+
+    template <class Archive>
+    void save(Archive &ar) const {
+      ar(cereal::make_nvp(Parent::getNodeType(), cereal::base_class<Parent>(this)));
+      ar(cereal::make_nvp("addressLines", _addressLines));
+      ar(cereal::make_nvp("city", _city));
+      ar(cereal::make_nvp("state", _state));
+      ar(cereal::make_nvp("zipCode", _zipCode));
+    }
+
+    template <class Archive>
+    void load(Archive &ar) {
+      ar(cereal::base_class<Parent>(this));
+      ar(_addressLines);
+      ar(_city);
+      ar(_state);
+      ar(_zipCode);
     }
     
   };
@@ -849,4 +967,5 @@ CEREAL_REGISTER_TYPE(fr::RequirementsManager::Purpose);
 CEREAL_REGISTER_TYPE(fr::RequirementsManager::Person);
 CEREAL_REGISTER_TYPE(fr::RequirementsManager::PhoneNumber);
 CEREAL_REGISTER_TYPE(fr::RequirementsManager::InternationalAddress);
+CEREAL_REGISTER_TYPE(fr::RequirementsManager::USAddress);
 CEREAL_REGISTER_TYPE(fr::RequirementsManager::Event);

@@ -14,6 +14,7 @@ if (NOT TARGET FR::RequirementsManager)
 endif()
 
 set(TEST_SRC
+  ${CMAKE_CURRENT_SOURCE_DIR}/DatabaseTests.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/NodeTest.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/CommitableNodeTest.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/RequirementTest.cpp
@@ -33,4 +34,5 @@ target_link_libraries(RequirementsManagerTests PUBLIC
   GTest::GTest
   GTest::Main
   FR::RequirementsManager
+  libpqxx::pqxx
 )

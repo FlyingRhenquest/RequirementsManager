@@ -42,11 +42,15 @@ namespace fr::RequirementsManager {
   public:
 
     using Type = Product;
-    using PtrType = std::shared_ptr<CommitableNode>;
+    using PtrType = std::shared_ptr<Product>;
     using Parent = CommitableNode;
     
     Product() = default;
     virtual ~Product() = default;
+
+    std::string getNodeType() const override {
+      return "Product";
+    }
 
     void setTitle(const std::string& title) {
       throwIfCommitted();

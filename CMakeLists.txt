@@ -11,6 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(PkgConfig)
 find_package(Boost 1.90 CONFIG QUIET COMPONENTS uuid)
 find_package(cereal CONFIG QUIET)
+find_package(FRTypes CONFIG QUIET)
 set(USING_BOOST_EXTERNAL FALSE)
 set(USING_CEREAL_EXTERNAL FALSE)
 
@@ -77,12 +78,32 @@ if (NOT cereal_FOUND)
 
   ExternalProject_Get_Property(CerealExternal INSTALL_DIR)
   set(cereal_INCLUDE_DIRS "${INSTALL_DIR}/include")
-  endif()  
+endif()
+
+if (NOT FRTypes_FOUND)
+  set(USING_FRTYPES_EXTERNAL TRUE)
+  set(FRTYPES_EXTERNAL_PREFIX "FrtypesExternal")
+  set(FRTYPES_EXTERNAL_SOURCE "${FRTYPES_EXTERNAL_PREFIX}/source")
+  set(FRTYPES_EXTERNAL_BUILD "${FRTYPES_EXTERNAL_PREFIX}/build")
+  set(FRTYPES_EXTERNAL_INSTALL "${FRTYPES_EXTERNAL_PREFIX}/insstall")
+
+  ExternalProject_Add(FRTypesExternal
+    GIT_REPOSITORY "https://github.com/FlyingRhenquest/types.git"
+    PREFIX "${FRTYPES_EXTERNAL_PREFIX}"
+    SOURCE_DIR "${FRTYPES_EXTERNAL_SOURCE}"
+    BINARY_DIR "${FRTYPES_EXTERNAL_BUILD}"
+    INSTALL_DIR "${FRTYPES_EXTERNAL_INSTALL}"
+    CMAKE_ARGS -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+  )
+
+  ExternalProject_Get_Property(FRTypesExternal INSTALL_DIR)
+  set(FRTypes_INSTALL_DIR "${INSTALL_DIR}/include")
+endif()
 
 option(BUILD_TESTS "Build unit tests" ON)
 set(HEADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/fr/RequirementsManager")
 
-set(HEADER_LIST
+set(DATA_HEADER_LIST
   "${CMAKE_CURRENT_SOURCE_DIR}/include/fr/RequirementsManager.h"
   "${HEADER_DIR}/CommitableNode.h"
   "${HEADER_DIR}/Node.h"
@@ -106,6 +127,7 @@ set(LIBRARY_SOURCE
 if (NOT EMSCRIPTEN)
   find_package(Python REQUIRED COMPONENTS Interpreter Development)
   find_package(nanobind CONFIG REQUIRED)
+  find_package(libpqxx REQUIRED)
   
   message(STATUS "Building C++ native library and python bindings")
   
@@ -121,7 +143,7 @@ if (NOT EMSCRIPTEN)
 
   set_target_properties(RequirementsManager PROPERTIES
     FRAMEWORK TRUE
-    PUBLIC_HEADER "${HEADER_LIST}"
+    PUBLIC_HEADER "${DATA_HEADER_LIST}"
   )
 
   target_include_directories(RequirementsManager
@@ -138,6 +160,15 @@ if (NOT EMSCRIPTEN)
   )
 
   target_link_libraries(FRRequirements PUBLIC FR::RequirementsManager)
+
+  add_executable(CreateTables
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CreateTables.cpp"
+  )
+
+  # Funnily enough don't need requirements manager ndoes for this
+  target_link_libraries(CreateTables PUBLIC
+    libpqxx::pqxx
+  )    
 
   if (BUILD_TESTS)
     add_subdirectory(test)
