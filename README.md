@@ -7,14 +7,15 @@ Currently this is just a checkpoint commit into git. This is an ongoing
 project and will change over time. It's not particularly interesting
 right now.
 
-The Python API is up-to-date with the C++ objects, so I could start
-putting requirements together in Python, but I'm not gonna do that yet.
+I need to instrument the PythonAPI to be able to save to Postgres soon.
+I should be able to get to that in the next couple of days.
 
 ## What's here RIGHT NOW
 
  * Nodes (Data objects. See Design Overview)
  * Python API for Nodes
  * Javascript API for Nodes
+ * Support for writing SOME nodes into a Postgres database.
  
  Nodes are just data. They can be fit together in any way, but there
  is almost nothing right now that actually does so. You can just stick
@@ -23,6 +24,15 @@ putting requirements together in Python, but I'm not gonna do that yet.
  them than I imagined) we can actually start doing more interesting
  things with them. Because Nodes can do literally anything. That's
  why everyone keeps doing these node-based systems.
+ 
+ I have initial PostgreSQL support checked in and I'm pushing this
+ up to github now in case anyone's following this project. I need
+ to add the rest of the node tables in CreateTables, write some
+ more database tests for various node types, exercise CommitableNode
+ some more and clean up some of the pqxx queries I've written. I also
+ need to extend the Python API for database support. I'm not planning
+ to add it to the emscripten API since that's UI layer and will be
+ communicating to a backend that handles that.
 
 ## Goals:
 
@@ -77,10 +87,8 @@ happen to *like* writing C++ code.
 
 ## Thread Safety
 
-Will eventually need some, don't have any yet. It is on the radar though.
-This may involve doing stuff like hiding up and down lists behind 
-additional accessors (yay) so I can do mutex locking in sensible
-places.
+I'm starting to add thread safety now, since the database stuff kind of
+needs it.
 
 ## Todos
 
