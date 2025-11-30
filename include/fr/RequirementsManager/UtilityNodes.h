@@ -93,7 +93,7 @@ namespace fr::RequirementsManager {
 
   public:
     using Type = Completed;
-    using PtrTtype = std::shared_ptr<Type>;
+    using PtrType = std::shared_ptr<Type>;
     using Parent = Node;
 
     std::string getNodeType() const override {
@@ -188,6 +188,11 @@ namespace fr::RequirementsManager {
    * the down-list of a project, requirement, design, task, etc.
    * Don't put one in or put one in and set it to zero if you
    * need more info to provide an estimate.
+   *
+   * Estimate doesn't enforce any particular unit but if I
+   * ever display it anywhere I'll probably assume seconds
+   * as a duration. You could also store a future date from
+   * the standard posix epoch.
    */
 
   class TimeEstimate : public Node {
@@ -199,7 +204,7 @@ namespace fr::RequirementsManager {
   private:
     // Descriptive text for this estimate
     std::string _text;
-    std::chrono::seconds _estimate;
+    unsigned long _estimate;
 
   public:
 
@@ -214,16 +219,16 @@ namespace fr::RequirementsManager {
       _text = text;
     }
 
-    void setEstimate(time_t estimate) {
-      _estimate = std::chrono::seconds(estimate);
+    void setEstimate(unsigned long estimate) {
+      _estimate = estimate;
     }
 
     std::string getText() const {
       return _text;
     }
 
-    time_t getEstimate() const {
-      return _estimate.count();
+    unsigned long getEstimate() const {
+      return _estimate;
     }
 
     template <class Archive>
@@ -259,7 +264,7 @@ namespace fr::RequirementsManager {
     // Some descriptive text for this effort (System doesn't require anything)
     std::string _text;
     // Amount of time (in seconds) for this effort.
-    std::chrono::seconds _effort;
+    unsigned long _effort;
     
   public:
     Effort() = default;
@@ -281,16 +286,16 @@ namespace fr::RequirementsManager {
     
     // TODO: Should I include a billable flag for effort? I kinda feel like
     // that should be somewhat dictated by the node type the effort is attached to
-    void setEffort(time_t effort) {
-      _effort = std::chrono::seconds(effort);
+    void setEffort(unsigned long effort) {
+      _effort = effort;
     }
 
     std::string getText() const {
       return _text;
     }
 
-    time_t getEffort() const {
-      return _effort.count();
+    unsigned long getEffort() const {
+      return _effort;;
     }
 
     template <class Archive>
@@ -410,8 +415,8 @@ namespace fr::RequirementsManager {
     std::string _outcome;
     // Who/What is this goal targeting?
     std::string _context;
-    // Target date
-    std::chrono::system_clock::time_point _targetDate;
+    // Target date (POSIX timestamp)
+    unsigned long _targetDate;
     // Target Date confidence/priority (High/med/low/thereaboutsish)
     // Feel free to throw a "we all die if this target date isn't met"
     // in there.
@@ -444,7 +449,7 @@ namespace fr::RequirementsManager {
       _context = context;
     }
 
-    void setTargetDate(const std::chrono::system_clock::time_point& targetDate) {
+    void setTargetDate(unsigned long& targetDate) {
       _targetDate = targetDate;
     }
 
@@ -468,7 +473,7 @@ namespace fr::RequirementsManager {
       return _context;
     }
 
-    std::chrono::system_clock::time_point getTargetDate() const {
+    unsigned long getTargetDate() const {
       return _targetDate;
     }
 
@@ -511,9 +516,8 @@ namespace fr::RequirementsManager {
   class Purpose : public Node {
     // Description of the purpose (IE: You pass butter)
     std::string _description;
-    // When the delivery of this purpose is due
-    // (I'd like my butter std::chrono::system_clock::now() please.)
-    std::chrono::system_clock::time_point _deadline;
+    // When the delivery of this purpose is due (POSIX timestamp)
+    unsigned long _deadline;
     // Deadline priority/confidence/wiggle room
     // IE: "We all die if we don't meet this deadline." I'd
     // assume that would be VERY HIGH priority
@@ -535,7 +539,7 @@ namespace fr::RequirementsManager {
       _description = description;
     }
 
-    void setDeadline(const std::chrono::system_clock::time_point& deadline) {
+    void setDeadline(unsigned long deadline) {
       _deadline = deadline;
     }
 
@@ -547,7 +551,7 @@ namespace fr::RequirementsManager {
       return _description;
     }
 
-    std::chrono::system_clock::time_point getDeadline() const {
+    unsigned long getDeadline() const {
       return _deadline;
     }
 

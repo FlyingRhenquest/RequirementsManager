@@ -50,7 +50,11 @@ namespace fr::RequirementsManager {
     // you need to add a struct in that file that
     // can save and update it and then add it to the list
     // here.
-    using SpecificSaveableTypes = fr::types::Typelist<Organization, Product, Project>;
+    using SpecificSaveableTypes =
+      fr::types::Typelist<Organization, Product, Project, Requirement, Story, UseCase,
+                          Text, Completed, KeyValue, TimeEstimate, Effort, Role,
+                          Actor, Goal, Purpose, Person, EmailAddress, PhoneNumber,
+                          InternationalAddress, USAddress, Event>;
 
     // Set connection parameters up to connect to the database
     // from outside the application
@@ -262,7 +266,24 @@ namespace fr::RequirementsManager {
           traverse(child);
         }
       }
-      
+
+      // Check and see if this is an international address and if so
+      // save the address line nodes associated with that
+
+      auto interAddress = std::dynamic_pointer_cast<InternationalAddress>(node);
+      if (interAddress) {
+        if (interAddress->getAddressLines()) {
+          traverse(interAddress->getAddressLines());
+        }
+      }
+          
+      // Same thing for US Address
+      auto usAddress = std::dynamic_pointer_cast<USAddress>(node);
+      if (usAddress) {
+        if (usAddress->getAddressLines()) {
+          traverse(usAddress->getAddressLines());
+        }
+      }
     }
     
   public:

@@ -68,6 +68,109 @@ int main(int argc, char *argv[]) {
                                 "locked      BOOLEAN NOT NULL DEFAULT TRUE,"
                                 "name        VARCHAR(200) NOT NULL);");
 
+  std::string useCaseTable("CREATE TABLE IF NOT EXISTS use_case ("
+                           "id        uuid PRIMARY KEY,"
+                           "name      VARCHAR(200) NOT NULL);");
+
+  std::string requirementTable("CREATE TABLE IF NOT EXISTS requirement ("
+                               "id       uuid PRIMARY KEY,"
+                               "title    VARCHAR(200) NOT NULL,"
+                               "text     TEXT,"
+                               "functional BOOLEAN NOT NULL DEFAULT FALSE);");
+  
+  std::string storyTable("CREATE TABLE IF NOT EXISTS story ("
+                         "id           uuid PRIMARY KEY,"
+                         "title        VARCHAR(200) NOT NULL,"
+                         "goal         TEXT,"
+                         "benefit      TEXT);");
+
+  std::string textTable("CREATE TABLE IF NOT EXISTS text ("
+                        "id            uuid PRIMARY KEY,"
+                        "text          TEXT);");
+
+  std::string completedTable("CREATE TABLE IF NOT EXISTS completed ("
+                        "id            uuid PRIMARY KEY,"
+                        "description   text);");
+
+  std::string keyValueTable("CREATE TABLE IF NOT EXISTS keyvalue ("
+                            "id           uuid PRIMARY KEY,"
+                            "key          VARCHAR(200),"
+                            "value        TEXT);");
+
+  std::string timeEstimateTable("CREATE TABLE IF NOT EXISTS time_estimate ("
+                                "id          uuid PRIMARY KEY,"
+                                "text        TEXT,"
+                                "estimate    BIGINT);");
+
+  std::string effortTable("CREATE TABLE IF NOT EXISTS effort ("
+                          "id             uuid PRIMARY KEY,"
+                          "text           TEXT,"
+                          "effort         BIGINT);");
+
+  std::string roleTable("CREATE TABLE IF NOT EXISTS role ("
+                        "id               uuid PRIMARY KEY,"
+                        "who              VARCHAR(200) NOT NULL);");
+
+  std::string actorTable("CREATE TABLE IF NOT EXISTS actor ("
+                         "id              uuid PRIMARY KEY,"
+                         "actor           varchar(200) NOT NULL);");
+
+  std::string goalTable("CREATE TABLE IF NOT EXISTS goal ("
+                        "id               uuid PRIMARY KEY,"
+                        "action           TEXT,"
+                        "outcome          TEXT,"
+                        "context          TEXT,"
+                        "target_date      TIMESTAMP,"
+                        "target_date_confidence VARCHAR(200),"
+                        "alignment        TEXT);");
+
+  std::string purposeTable("CREATE TABLE IF NOT EXISTS purpose ("
+                           "id            uuid PRIMARY KEY,"
+                           "description   TEXT,"
+                           "deadline      TIMESTAMP,"
+                           "deadline_confidence VARCHAR(200));");
+
+  std::string personTable("CREATE TABLE IF NOT EXISTS person ("
+                          "id             uuid PRIMARY KEY,"
+                          "first_name     VARCHAR(200) NOT NULL,"
+                          "last_name      VARCHAR(200) NOT NULL);");
+
+  std::string emailAddressTable("CREATE TABLE IF NOT EXISTS email_address ("
+                                "id       uuid PRIMARY KEY,"
+                                "address  VARCHAR(200) NOT NULL);");
+
+  std::string phoneNumberTable("CREATE TABLE IF NOT EXISTS phone_number ("
+                               "id             uuid PRIMARY KEY,"
+                               "countrycode    VARCHAR(10),"
+                               "number         VARCHAR(20),"
+                               "phone_type     VARCHAR(20));");
+
+  // InternationalAddress uses a text node for address lines. Just
+  // store the first text node UUID in address lines here and the
+  // store/retrieve code will grab the first one and traverse it
+  // as if it were any other node.
+  std::string internationalAddressTable("CREATE TABLE IF NOT EXISTS international_address ("
+                                        "id            uuid PRIMARY KEY,"
+                                        "country_code  VARCHAR(20),"
+                                        "address_lines uuid,"
+                                        "locality      VARCHAR(200),"
+                                        "postal_code   VARCHAR(50));");
+
+  // USAddress does the same thing as international address with its
+  // address lines.
+  std::string usAddressTable("CREATE TABLE IF NOT EXISTS us_address ("
+                              "id                  uuid PRIMARY KEY,"
+                              "address_lines       uuid,"
+                              "city                VARCHAR(100),"
+                              "state               VARCHAR(40),"
+                              "zipcode             VARCHAR(20));");
+
+  std::string eventTable("CREATE TABLE IF NOT EXISTS event ("
+                         "id                  uuid PRIMARY KEY,"
+                         "name                VARCHAR(200),"
+                         "description         TEXT);");
+                               
+
   std::cout << "Checking to see if association_type exists...";
   pqxx::result res = transaction.exec("SELECT EXISTS(SELECT 1 FROM pg_type AS t JOIN pg_namespace AS n ON n.oid = t.typnamespace where t.typname = 'association_type' AND n.nspname = 'public' AND t.typtype = 'e');");
   bool enumExists = false;
@@ -102,7 +205,61 @@ int main(int argc, char *argv[]) {
   std::cout << "Creating product table...";
   transaction.exec(productTable);
   std::cout << " Done" << std::endl;
-  
+  std::cout << "Creating use case table...";
+  transaction.exec(useCaseTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating requirement table...";
+  transaction.exec(requirementTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating story table...";
+  transaction.exec(storyTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating text table...";
+  transaction.exec(textTable);
+  std::cout << " Done" << std::endl;
+  std::cout <<"Creating completed table...";
+  transaction.exec(completedTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating keyvalue table...";
+  transaction.exec(keyValueTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating time_estimate table...";
+  transaction.exec(timeEstimateTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating effort table...";
+  transaction.exec(effortTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating role table...";
+  transaction.exec(roleTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating actor table...";
+  transaction.exec(actorTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating goal table...";
+  transaction.exec(goalTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating purpose table...";
+  transaction.exec(purposeTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating person table...";
+  transaction.exec(personTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating email address table...";
+  transaction.exec(emailAddressTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating phone number table...";
+  transaction.exec(phoneNumberTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating international address table...";
+  transaction.exec(internationalAddressTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating USAddress Table...";
+  transaction.exec(usAddressTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating Event Table...";
+  transaction.exec(eventTable);
+
+  std::cout << " Done" << std::endl;
   std::cout << "Comitting transactions...";
   transaction.commit();
   std::cout << "Done." << std::endl;
