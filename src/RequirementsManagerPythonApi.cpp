@@ -77,6 +77,7 @@ NB_MODULE(FRRequirements, m) {
     .def_rw("down", &Node::down, "Node down-list. This indicates some sort of owned/child relationship")
     .def_rw("changed", &Node::changed, "Indicates some data in the node changed.")
     .def("idString", &Node::idString, "Unique (UUIDV7) ID. You must call init to set the id, initally.")
+    .def("setUuid", &Node::setUuid, "Set this node's UUID from a string")
     .def("init", &Node::init, "Sets/Resets the Node's ID.")
     .def("to_json", &Node::to_json, "Returns JSON for this node. Includes entire graph accessible by node up and down lists.");
   

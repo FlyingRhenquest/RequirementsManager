@@ -84,9 +84,17 @@ namespace fr::RequirementsManager {
 
     // Returns ID as string. Note init must be called to actually
     // set the node.
-    std::string idString() {
+    std::string idString() const {
       std::string ret = boost::uuids::to_string(id);
       return ret;
+    }
+
+    // Set UUID from string -- Database load needs this.
+
+    void setUuid(const std::string &uuid) {
+      boost::uuids::string_generator generator;
+      id = generator(uuid);
+      changed = true;
     }
 
     // Return Node Type -- The C++ type system is very strong but a lot of it

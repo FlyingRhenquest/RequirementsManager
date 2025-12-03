@@ -187,12 +187,17 @@ namespace fr::RequirementsManager {
       if (nodeInDb(node)) {
         clearNodeDBAssociations(node);
       } else {
-        std::string insertCmd = std::format("INSERT INTO node (id, node_type) VALUES('{}','{}');",
-                                            node->idString(), node->getNodeType());
-        _transaction.exec(insertCmd);
+        std::string insertCmd("INSERT INTO node (id, node_type) VALUES($1,$2);");
+        pqxx::params p{
+          node->idString(),
+          node->getNodeType()
+        };
+        _transaction.exec(insertCmd, p);
       }
 
-      pqxx::stream_to stream = pqxx::stream_to::table(_transaction, {"public", "node_associations"}, {"node", "association", "type"});
+      // Use a stream to update node_associations
+      
+      pqxx::stream_to stream = pqxx::stream_to::table(_transaction, {"public", "node_associations"}, {"id", "association", "type"});
       // Now we just need to write the node associations
       for (auto upNode : node->up) {
         stream.write_values(node->idString(), upNode->idString(), "up");
@@ -218,12 +223,20 @@ namespace fr::RequirementsManager {
       std::cout << "Traverse : " << node->idString() << std::endl;
       auto owner = this->getOwner();
       if (!owner) {
+        // This can happen if run is called directly rather
+        // than from a threadpool object.
         std::cout << "WARNING: Owner is Null" << std::endl;
       }
       // set up to save this node
       _alreadySaved[node->idString()] = node;
       if (node->changed) {
         auto saver = std::make_shared<SaveNodesNode<WorkerThreadType>>(node, true);
+
+        // Subscribe to saver complete signal and forward it back to the parent (this)
+        // object.
+        saver->complete.connect([&](const std::string& id, Node::PtrType n) {
+          this->complete(id, n);
+        });
         
         // Only enqueue work if we're in a thread pool
         if (owner) {
@@ -287,12 +300,15 @@ namespace fr::RequirementsManager {
     }
     
   public:
-    // A notification signal to detect that save is complete.
-    // Note this only indicates that this object has exited
-    // run, but there could still be work in the children
-    // that needs to complete. It signals with the ID of the
-    // node that was saved.
-    boost::signals2::signal<void(const std::string&)> complete;
+    /**
+     * Complete is a signals2 callback you can subscribe to for save notificaitons.
+     * If you're saving an entire tree of nodes, the SaveNodesNode you create
+     * will create additional ones to handle the other nodes in the tree and place
+     * them in the down list of the SaveNodesNode you created. The SaveNodesNode
+     * you created will register with and forward this signal from all the other
+     * nodes it creates, so you can operate on individual nodes as they are saved.
+     */
+    boost::signals2::signal<void(const std::string&, Node::PtrType)> complete;
 
     SaveNodesNode(Node::PtrType startingNode,
                   bool saveThisNodeOnly = false) :
@@ -315,6 +331,15 @@ namespace fr::RequirementsManager {
       }
 
       if (_startingNode->changed) {
+
+        // Set the changed flag on the object to be saved to false.
+        // This isn't technically true until commit is called,
+        // but I want the object to be stored in the database in that
+        // state. At some point if it's worth doing, I'll code up
+        // a memento for this that I can roll back if we get an
+        // exception or error before commit is called.
+        _startingNode->changed = false;
+        
         std::cout << "Saving " << _startingNode->idString() << std::endl;
         dbSaveNode(_startingNode);
         _alreadySaved[_startingNode->idString()] = _startingNode;
@@ -336,8 +361,8 @@ namespace fr::RequirementsManager {
       }
       
       _transaction.commit();
-      complete(_startingNode->idString());
       _saveComplete = true;
+      complete(_startingNode->idString(), _startingNode);
     };
 
     bool saveComplete() const {

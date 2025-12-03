@@ -60,7 +60,7 @@ TEST(DatabaseTests, TwoNodesThreadPool) {
   // Intercept signal from saver and wake this process up when it is
   // received.
   
-  saver->complete.connect([&waitCv, &savedId](const std::string& id) {
+  saver->complete.connect([&waitCv, &savedId](const std::string& id, Node::PtrType /* notused */) {
     savedId = id;
     waitCv.notify_one();
   });      
@@ -101,7 +101,7 @@ TEST(DatabaseTests, SpecificNodeTests) {
   threadpool->startThreads(4);
   auto saver = std::make_shared<SaveNodesNode<WorkerThread>>(projectTestWombat);
 
-  saver->complete.connect([&waitCv, &savedId](const std::string& id) {
+  saver->complete.connect([&waitCv, &savedId](const std::string& id, Node::PtrType /* NotUsed */) {
     savedId = id;
     waitCv.notify_one();
   });

@@ -35,6 +35,7 @@ EMSCRIPTEN_BINDINGS(FRRequirementsManager) {
     .property("down", &Node::down, return_value_policy::reference())
     .property("changed", &Node::changed, return_value_policy::reference())
     .function("idString", &Node::idString)
+    .function("setUuid", &Node::setUuid)
     .function("init", &Node::init)
     .function("to_json", &Node::to_json);
 
