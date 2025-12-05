@@ -15,6 +15,10 @@
  */
 
 #include <fr/RequirementsManager.h>
+#include <fr/RequirementsManager/PqDatabase.h>
+#include <fr/RequirementsManager/PqNodeFactory.h>
+#include <fr/RequirementsManager/TaskNode.h>
+#include <fr/RequirementsManager/ThreadPool.h>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/bind_vector.h>
 #include <nanobind/stl/chrono.h>
@@ -68,8 +72,53 @@ NB_MODULE(FRRequirements, m) {
 
   nanobind::bind_vector<std::vector<std::shared_ptr<Node>>>(m, "NodeVector");
 
+  // ThreadState Enum
+
+  nanobind::enum_<ThreadState>(m, "ThreadState")
+    .value("Starting", ThreadState::Starting)
+    .value("Ready", ThreadState::Ready)
+    .value("Processing", ThreadState::Processing)
+    .value("Draining", ThreadState::Draining)
+    .value("Shutdown", ThreadState::Shutdown)
+    .export_values();
+
+  // TaskNode is a pure virtual class -- do not create directly
+  
+  nanobind::class_<TaskNode<WorkerThread>>(m, "TaskNode")
+    .def(nanobind::new_([](){ throw std::logic_error("Tasknode is a pure virtual class -- do not create one directly in Python (Are you looking for SaveNodesNode or PqNodeFactory?"); }))
+    ;
+    
+  
+  // Threadpool (Currently for database saving and loading)
+  nanobind::class_<ThreadPool<WorkerThread>>(m, "ThreadPool")
+    .def(nanobind::new_([](){return std::make_shared<ThreadPool<WorkerThread>>();}))
+    .def("status", &ThreadPool<WorkerThread>::status, "Returns ThreadState status of the thread pool")
+    .def("startThreads", &ThreadPool<WorkerThread>::startThreads, "Start threads. Int parameter is the number of threads to start. Between 2 and 4 are usually good numbers.")
+    .def("workerStatus", &ThreadPool<WorkerThread>::workerStatus, "Returns an array with the ThreadState status of each worker.")
+    .def("hasWork", &ThreadPool<WorkerThread>::hasWork, "Returns true if work is currently queued up in the threadpool")
+    .def("enqueue", &ThreadPool<WorkerThread>::enqueue, "Queue up a worker to be run whenever the threadpool gets around to it.")
+    .def("shutdown", &ThreadPool<WorkerThread>::shutdown, "Shut down the threadpool. Threadpool will process remaining work before finally shutting down.")
+    .def("join", &ThreadPool<WorkerThread>::join, "Join threadpool. Call after shutdown. This waits for the ThreadPool to complete its work and shut down completely.")
+    ;
+
+  // SaveNodesNode saves nodes in the Postgres database
+  
+  nanobind::class_<SaveNodesNode<WorkerThread>, TaskNode<WorkerThread>>(m, "SaveNodesNode")
+    .def(nanobind::new_([](Node::PtrType startingNode){ return std::make_shared<SaveNodesNode<WorkerThread>>(startingNode, false); }))
+    .def("saveComplete", &SaveNodesNode<WorkerThread>::saveComplete, "Returns true when your starting node has been saved")
+    .def("treeSaveComplete", &SaveNodesNode<WorkerThread>::treeSaveComplete, "Returns true when the entire graph associated with your node has been saved.")
+    ;
+
+  // PqNodeFactory loads nodes from a Postges database
+  
+  nanobind::class_<PqNodeFactory<WorkerThread>, TaskNode<WorkerThread>>(m, "PqNodeFactory")
+    .def(nanobind::new_([](const std::string& uuid) { return std::make_shared<PqNodeFactory<WorkerThread>>(uuid); }))
+    .def("getNode", &PqNodeFactory<WorkerThread>::getNode, "Retrieves the node you asked to be loaded.")
+    .def("graphLoaded", &PqNodeFactory<WorkerThread>::graphLoaded, "Returns true if your graph is loaded. The ThreadPool could still be busy loading node data into the nodes. You can check its workerStatus to see if it's still doing anything.")
+    ;
+  
   // Node -- You won't tend to use this one directly --
-  // other htings inherit from it
+  // other things inherit from it
 
   nanobind::class_<Node>(m, "Node")
     .def(nanobind::new_([](){return std::make_shared<Node>();}))

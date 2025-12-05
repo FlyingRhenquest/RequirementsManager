@@ -326,6 +326,10 @@ namespace fr::RequirementsManager {
     Node::PtrType getNode() {
       return _startingNode;
     }
+
+    bool graphLoaded() {
+      return _graphLoaded;
+    }
     
   };
   

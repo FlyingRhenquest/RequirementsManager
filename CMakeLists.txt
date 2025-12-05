@@ -159,7 +159,10 @@ if (NOT EMSCRIPTEN)
     $<INSTALL_INTERFACE:include>
   )
 
-  target_link_libraries(FRRequirements PUBLIC FR::RequirementsManager)
+  target_link_libraries(FRRequirements PUBLIC
+    FR::RequirementsManager
+    libpqxx::pqxx
+  )
 
   add_executable(CreateTables
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CreateTables.cpp"

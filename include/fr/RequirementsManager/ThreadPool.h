@@ -259,6 +259,10 @@ namespace fr::RequirementsManager {
     void shutdown() {
       _shutdown = true;
     }
+
+    ThreadState status() {
+      return _state;
+    }
     
   };
 
