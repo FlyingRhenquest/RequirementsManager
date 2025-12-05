@@ -4,17 +4,17 @@ This is a RequirementsManager because I need a Requirements Manager to
 manage my requirements for this project.
 
 Currently this is just a checkpoint commit into git. This is an ongoing
-project and will change over time. It's not particularly interesting
-right now.
+project and will change over time. It's starting to get somewhat
+interesting.
 
-This checkpoint adds inital support for reading a graph out of a
-database. It's not well tested yet. It's also recursive, so
-you should not make eye contact (As a rule it's best not to make
-eye contact with recursive functions.) It's also not supported in
-Python or Emscripten yet.
+This checkpoint adds database load/save support to the Python API.
+See examples/python/LoadSaveDb.py for a brief example of how to use 
+it.
 
-I need to instrument the PythonAPI to be able to save and load soon.
-I should be able to get to that in the next couple of days.
+For database support to work, you need to set up your database. If you
+have a PostgreSQL database you can connect to, you can run the
+CreateTables executable that builds with this project to create the
+node tables. I will document this in more detail shortly.
 
 ## What's here RIGHT NOW
 
@@ -23,6 +23,7 @@ I should be able to get to that in the next couple of days.
  * Javascript API for Nodes
  * Support for writing graphs to a PostgreSQL database
  * Support for reading graphs from a PostgreSQL database
+ * Python API for loading and saving nodes.
  
  Nodes are just data. They can be fit together in any way, but there
  is almost nothing right now that actually does so. You can just stick
@@ -32,14 +33,13 @@ I should be able to get to that in the next couple of days.
  things with them. Because Nodes can do literally anything. That's
  why everyone keeps doing these node-based systems.
  
- I have initial PostgreSQL support checked in and I'm pushing this
- up to github now in case anyone's following this project. I need
- to add the rest of the node tables in CreateTables, write some
- more database tests for various node types, exercise CommitableNode
- some more and clean up some of the pqxx queries I've written. I also
- need to extend the Python API for database support. I'm not planning
- to add it to the emscripten API since that's UI layer and will be
- communicating to a backend that handles that.
+ PostgreSQL support is nominally ready. It has not been thoroughly tested.
+ Python is nominally up to date with the C++ API. Emscripten is not
+ getting SQL database support since it's not supposed to exist in
+ an environment that has access to it. I'm planning to set up
+ the emscripten side to be able to query objects from a REST server.
+ 
+ UI is next!
 
 ## Goals:
 
@@ -102,19 +102,18 @@ needs it.
  * Do an example project with this requirements manager and export it to
    JSON that anyone can just import so we can all manage changes to the
    requirements manager from the requirements manager.
- * SQL logic to save nodes (Probalby some visitor-like thing initially
-   geared toward PostgresSQL)
  * Logic/Rules for how nodes fit together. Right now you can just throw
    any node into any other node.
  * Node has a "changed" flag, set that for changes that need to be saved
    and figure out what sets it to false -- is it serializing to json? Saving
    in a SQL database? Other?
  * Figure out a way to export one chunk of the project -- one requirement,
-   all changed things, something like that. I'm thinking I can set
-   a filter in the cereal serialization and have it just stop following
-   up nodes when it hits a certain point. Cereal is already pretty good
-   of not recursively exploding when you serialize a whole graph of
-   things from any individual node in it.
+   all changed things, something like that. Maybe just set node
+   relationships with down nodes only for things that should not
+   be loaded as part of a graph. Like an organization could have just
+   down-nodes to everything and if nothing points back to it,
+   you won't load everything the organization owns when you load
+   your project.
  * Need some nodes for tracking git commit tags. Ideally I could
    grab tags in a pre-commit hook, generate a node with that information
    and write it into the database.
