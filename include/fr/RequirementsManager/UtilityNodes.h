@@ -449,7 +449,7 @@ namespace fr::RequirementsManager {
       _context = context;
     }
 
-    void setTargetDate(unsigned long& targetDate) {
+    void setTargetDate(unsigned long targetDate) {
       _targetDate = targetDate;
     }
 

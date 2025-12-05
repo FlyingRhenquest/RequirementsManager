@@ -41,8 +41,8 @@ namespace fr::RequirementsManager {
     using PtrType = std::shared_ptr<TaskNode<WorkerType>>;
     using Parent = Node;
     
-    TaskNode() {};
-    virtual ~TaskNode() {};
+    TaskNode() {}
+    virtual ~TaskNode() {}
 
     virtual void run() = 0;
     

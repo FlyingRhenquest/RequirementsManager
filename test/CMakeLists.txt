@@ -19,6 +19,7 @@ set(TEST_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/CommitableNodeTest.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/RequirementTest.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/OrganizationTest.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/NodeFactoryTests.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/ProjectTest.cpp
 )
 

@@ -18,6 +18,7 @@
 
 #include <fr/RequirementsManager.h>
 #include <pqxx/pqxx>
+#include <format>
 #include <stdexcept>
 #include <string>
 
@@ -45,6 +46,21 @@ namespace fr::RequirementsManager::database {
 
     void update(Node::PtrType n, pqxx::work& transaction) {
       throw std::logic_error("Attempted to update an unknown node type (type not specialized in PqDatabaseSpecific.h)");
+    }
+
+    /**
+     * A node or any other unknown type will end up here. On the
+     * off chance we save a raw node, I don't want to throw for
+     * it. There's no specific data that needs to be loaded
+     * for node, so it'll just return immediately. It returns
+     * false, so a NodeLoader would flag it as notfound since
+     * there shouldn't generally be raw nodes in a database,
+     * but if you intend to store some you should be aware of
+     * that. It's not conisdered an error anywhere at the moment,
+     * just information so you can investigate if you need to.
+     */
+    bool load(Node::PtrType n, pqxx::work& transaction) {
+      return false;
     }
   };
 
@@ -77,6 +93,32 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd, p);
     }
+
+    bool load(Organization::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setName(row["name"].as<std::string>());
+        if (row["locked"].as<bool>()) {
+          node->lock();
+        }
+      }
+      return ret;
+    }
+    
   };
 
   /**********************************************************/
@@ -106,6 +148,29 @@ namespace fr::RequirementsManager::database {
         node->idString()
       };
       transaction.exec(cmd, p);
+    }
+
+    bool load(Product::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setTitle(row["title"].as<std::string>());
+        node->setDescription(row["description"].as<std::string>());
+      }
+      return ret;
     }
     
   };
@@ -137,6 +202,29 @@ namespace fr::RequirementsManager::database {
         node->idString()
       };
       transaction.exec(cmd, p);         
+    }
+
+    bool load(Project::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setName(row["name"].as<std::string>());
+        node->setDescription(row["description"].as<std::string>());
+      }
+      return ret;
     }
   };
 
@@ -170,6 +258,31 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd, p);
     }
+    
+    bool load(Requirement::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setTitle(row["title"].as<std::string>());
+        node->setText(row["text"].as<std::string>());
+        node->setFunctional(row["functional"].as<bool>());
+      }
+      return ret;
+    }
+    
   };
 
   /***************************************************************/
@@ -202,6 +315,30 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd, p);
     }
+
+    bool load(Story::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setTitle(row["title"].as<std::string>());
+        node->setGoal(row["goal"].as<std::string>());
+        node->setBenefit(row["benefit"].as<std::string>());
+      }
+      return ret;
+    }
   };
 
   /******************************************************************/
@@ -229,7 +366,30 @@ namespace fr::RequirementsManager::database {
         node->idString()
       };
       transaction.exec(cmd, p);
-    }    
+    }
+
+    bool load(UseCase::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setName(row["name"].as<std::string>());
+      }
+      return ret;
+    }
+
   };
 
   /********************************************************************/
@@ -257,6 +417,28 @@ namespace fr::RequirementsManager::database {
         node->idString()
       };
       transaction.exec(cmd, p);
+    }
+
+    bool load(Text::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setText(row["text"].as<std::string>());
+      }
+      return ret;
     }
     
   };
@@ -287,6 +469,29 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd, p);
     }
+
+    bool load(Completed::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setDescription(row["description"].as<std::string>());
+      }
+      return ret;
+    }
+
   };
 
   /**********************************************************************/
@@ -317,6 +522,30 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd, p);
     }
+
+    bool load(KeyValue::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setKey(row["key"].as<std::string>());
+        node->setValue(row["value"].as<std::string>());
+      }
+      return ret;
+    }
+
   };
 
   /********************************************************/
@@ -347,6 +576,30 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd, p);
     }
+
+    bool load(TimeEstimate::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setText(row["text"].as<std::string>());
+        node->setEstimate(row["estimate"].as<unsigned long>());
+      }
+      return ret;
+    }
+
   };
 
   /******************************************************************/
@@ -377,6 +630,30 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd, p);
     }
+
+    bool load(Effort::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setText(row["text"].as<std::string>());
+        node->setEffort(row["effort"].as<unsigned long>());
+      }
+      return ret;
+    }
+
   };
 
   /******************************************************************/
@@ -405,6 +682,29 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd, p);
     }
+
+    bool load(Role::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setWho(row["who"].as<std::string>());
+      }
+      return ret;
+    }
+
   };
 
   /*****************************************************************/
@@ -433,6 +733,29 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd, p);
     }
+
+    bool load(Actor::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setActor(row["actor"].as<std::string>());
+      }
+      return ret;
+    }
+
     
   };
 
@@ -475,6 +798,34 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd, p);
     }
+
+    bool load(Goal::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setAction(row["action"].as<std::string>());
+        node->setOutcome(row["outcome"].as<std::string>());
+        node->setContext(row["context"].as<std::string>());
+        node->setTargetDate(row["target_date"].as<unsigned long>());
+        node->setTargetDateConfidence(row["target_date_confidence"].as<std::string>());
+        node->setAlignment(row["alignment"].as<std::string>());
+      }
+      return ret;
+    }
+    
   };
 
   /*********************************************************/
@@ -508,7 +859,32 @@ namespace fr::RequirementsManager::database {
         node->idString()
       };
       transaction.exec(cmd, p);
-    }  
+    }
+
+    bool load(Purpose::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setDescription(row["description"].as<std::string>());
+        node->setDeadline(row["deadline"].as<unsigned long>());
+        node->setDeadlineConfidence(row["deadline_confidence"].as<std::string>());
+      }
+      return ret;
+    }
+
   };
 
   /*************************************************************/
@@ -539,6 +915,31 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd, p);
     }
+
+    bool load(Person::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setFirstName(row["first_name"].as<std::string>());
+        node->setLastName(row["last_name"].as<std::string>());
+      }
+      return ret;
+    }
+
+
   };
 
   /**********************************************************/
@@ -567,6 +968,29 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd, p);
     }
+
+    bool load(EmailAddress::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setAddress(row["address"].as<std::string>());
+      }
+      return ret;
+    }
+
   };
 
   /************************************************************/
@@ -601,6 +1025,31 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd, p);
     }
+
+    bool load(PhoneNumber::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setCountryCode(row["countrycode"].as<std::string>());
+        node->setNumber(row["number"].as<std::string>());
+        node->setPhoneType(row["phone_type"].as<std::string>());
+      }
+      return ret;
+    }
+
   };
 
   /*****************************************************************/
@@ -659,6 +1108,33 @@ namespace fr::RequirementsManager::database {
       
       transaction.exec(cmd, p);
     }
+
+    bool load(InternationalAddress::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setCountryCode(row["country_code"].as<std::string>());
+        // Address lines are just text nodes and will be set up elsewhere.
+        node->setLocality(row["locality"].as<std::string>());
+        node->setPostalCode(row["postal_code"].as<std::string>());
+      }
+      return ret;
+    }
+
+    
   };
 
   /*****************************************************************/
@@ -713,6 +1189,32 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd,p);
     }
+
+    bool load(USAddress::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        // Address lines are just text nodes and will be set up elsewhere.
+        node->setCity(row["city"].as<std::string>());
+        node->setState(row["state"].as<std::string>());
+        node->setZipCode(row["zipcode"].as<std::string>());
+      }
+      return ret;
+    }
+
   };
 
   /***********************************************************************/
@@ -742,6 +1244,30 @@ namespace fr::RequirementsManager::database {
       };
       transaction.exec(cmd, p);
     }
+
+    bool load(Event::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+
+      if (res.size() > 0) {
+        ret = true;
+      }
+      // It's not an error if the object isn't found. I'm taking a small
+      // performance hit loading by name rather than column number, but
+      // if the tables ever change this will be much easier to maintain.
+      // I can revisit this if database performance proves to be an issue,
+      // but I suspect it will not.
+      for (auto const &row : res) {
+        node->setName(row["name"].as<std::string>());
+        node->setDescription(row["description"].as<std::string>());
+      }
+      return ret;
+    }
+
   };
 
   /**

@@ -7,7 +7,13 @@ Currently this is just a checkpoint commit into git. This is an ongoing
 project and will change over time. It's not particularly interesting
 right now.
 
-I need to instrument the PythonAPI to be able to save to Postgres soon.
+This checkpoint adds inital support for reading a graph out of a
+database. It's not well tested yet. It's also recursive, so
+you should not make eye contact (As a rule it's best not to make
+eye contact with recursive functions.) It's also not supported in
+Python or Emscripten yet.
+
+I need to instrument the PythonAPI to be able to save and load soon.
 I should be able to get to that in the next couple of days.
 
 ## What's here RIGHT NOW
@@ -15,7 +21,8 @@ I should be able to get to that in the next couple of days.
  * Nodes (Data objects. See Design Overview)
  * Python API for Nodes
  * Javascript API for Nodes
- * Support for writing SOME nodes into a Postgres database.
+ * Support for writing graphs to a PostgreSQL database
+ * Support for reading graphs from a PostgreSQL database
  
  Nodes are just data. They can be fit together in any way, but there
  is almost nothing right now that actually does so. You can just stick

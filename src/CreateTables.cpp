@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
   std::string nodeAssociationType("CREATE TYPE association_type AS ENUM('up', 'down');");
   
   std::string nodeAssociations("CREATE TABLE IF NOT EXISTS node_associations ("
-                        "id            uuid PRIMARY KEY,"
+                        "id            uuid,"
                         "association   uuid,"
                         "type          association_type);");
 
