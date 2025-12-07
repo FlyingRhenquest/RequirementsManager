@@ -51,10 +51,10 @@ namespace fr::RequirementsManager {
     // can save and update it and then add it to the list
     // here.
     using SpecificSaveableTypes =
-      fr::types::Typelist<Organization, Product, Project, Requirement, Story, UseCase,
-                          Text, Completed, KeyValue, TimeEstimate, Effort, Role,
-                          Actor, Goal, Purpose, Person, EmailAddress, PhoneNumber,
-                          InternationalAddress, USAddress, Event>;
+      fr::types::Typelist<GraphNode, Organization, Product, Project, Requirement,
+                          Story, UseCase, Text, Completed, KeyValue, TimeEstimate,
+                          Effort, Role, Actor, Goal, Purpose, Person, EmailAddress,
+                          PhoneNumber, InternationalAddress, USAddress, Event>;
 
     // Set connection parameters up to connect to the database
     // from outside the application

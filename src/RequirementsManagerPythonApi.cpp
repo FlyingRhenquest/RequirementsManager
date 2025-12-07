@@ -142,6 +142,11 @@ NB_MODULE(FRRequirements, m) {
     .def("addChangeChild", &CommitableNode::addChangeChild, "Add a change child at the end of the changeChild tree.")
     .def("discardChange", &CommitableNode::discardChange, "Attempt to discard the changeChild of the current node. The object will refuse to do so if the current changeChild is already committed.");
 
+  nanobind::class_<GraphNode,Node>(m, "GraphNode")
+    .def(nanobind::new_([](){return std::make_shared<GraphNode>();}))
+    .def("setTitle", &GraphNode::setTitle, "Set graph title")
+    .def("getTitle", &GraphNode::getTitle, "get graph title");
+
   nanobind::class_<Organization,Node>(m, "Organization")
     .def(nanobind::new_([](){return std::make_shared<Organization>();}))
     .def("isLocked", &Organization::isLocked, "Checks to see if the organization is locked. If it's locked you can't change its name.")

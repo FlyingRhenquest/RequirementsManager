@@ -16,9 +16,10 @@
 
 #pragma once
 #include <fr/RequirementsManager/CommitableNode.h>
-#include <fr/RequirementsManager/Organization.h>
+#include <fr/RequirementsManager/GraphNode.h>
 #include <fr/RequirementsManager/Node.h>
 #include <fr/RequirementsManager/NodeConnector.h>
+#include <fr/RequirementsManager/Organization.h>
 #include <fr/RequirementsManager/Product.h>
 #include <fr/RequirementsManager/Project.h>
 #include <fr/RequirementsManager/Requirement.h>

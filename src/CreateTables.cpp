@@ -47,6 +47,10 @@ int main(int argc, char *argv[]) {
                         "association   uuid,"
                         "type          association_type);");
 
+  std::string graphNodeTable("CREATE TABLE IF NOT EXISTS graph_node ("
+                             "id              uuid PRIMARY KEY,"
+                             "title           VARCHAR(200));");
+
   std::string projectTable("CREATE TABLE IF NOT EXISTS project ("
                            "id      uuid PRIMARY KEY,"
                            "name    VARCHAR(200) NOT NULL,"
@@ -186,12 +190,14 @@ int main(int argc, char *argv[]) {
     std::cout << " Done" << std::endl;
   }
 
-  
   std::cout << "Creating node table...";
   transaction.exec(nodeTable);
   std::cout << " Done" << std::endl;
   std::cout << "Creating node_associations table...";
   transaction.exec(nodeAssociations);
+  std::cout << " Done." << std::endl;
+  std::cout << "Creating graph_node table...";
+  transaction.exec(graphNodeTable);
   std::cout << " Done." << std::endl;
   std::cout << "Creating organization table...";
   transaction.exec(organizationTable);

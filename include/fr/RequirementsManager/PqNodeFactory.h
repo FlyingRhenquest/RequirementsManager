@@ -51,7 +51,7 @@ namespace fr::RequirementsManager {
   
   class NodeAllocator {
     using NodeList =
-      fr::types::Typelist<Organization, Product, Project, Requirement, Story, UseCase,
+      fr::types::Typelist<GraphNode, Organization, Product, Project, Requirement, Story, UseCase,
                           Text, Completed, KeyValue, TimeEstimate, Effort, Role,
                           Actor, Goal, Purpose, Person, EmailAddress, PhoneNumber,
                           InternationalAddress, USAddress, Event>;
@@ -111,7 +111,7 @@ namespace fr::RequirementsManager {
   template <typename WorkerThreadType>
   class PqNodeLoader : public TaskNode<WorkerThreadType> {
     using NodeList =
-      fr::types::Typelist<Organization, Product, Project, Requirement, Story, UseCase,
+      fr::types::Typelist<GraphNode, Organization, Product, Project, Requirement, Story, UseCase,
                           Text, Completed, KeyValue, TimeEstimate, Effort, Role,
                           Actor, Goal, Purpose, Person, EmailAddress, PhoneNumber,
                           InternationalAddress, USAddress, Event>;

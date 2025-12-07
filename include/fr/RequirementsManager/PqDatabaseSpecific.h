@@ -66,6 +66,52 @@ namespace fr::RequirementsManager::database {
 
 
   /************************************************************/
+  // GraphNode-Specific type
+
+  template <>
+  struct DbSpecificData<fr::RequirementsManager::GraphNode> {
+    using type = fr::RequirementsManager::GraphNode;
+    static constexpr char name[] = "GraphNode";
+    static constexpr char tableName[] = "graph_node";
+
+    void insert(GraphNode::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("INSERT INTO {} (id,title) VALUES ($1, $2);", tableName);
+      pqxx::params p{
+        node->idString(),
+        node->getTitle()
+      };
+      transaction.exec(cmd, p);
+    }
+
+    void update(GraphNode::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("UPDATE {} SET title = $1 WHERE id = $2;", tableName);
+      pqxx::params p{
+        node->getTitle(),
+        node->idString()
+      };
+      transaction.exec(cmd,p);
+    }
+
+    bool load(GraphNode::PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("select * from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+      if (res.size() > 0) {
+        ret = true;
+      }
+
+      for (auto const &row : res) {
+        node->setTitle(row["title"].as<std::string>());
+      }
+      return ret;
+    }
+    
+  };
+  
+  /************************************************************/
   // Organization-Specific type
   
   template <>

@@ -39,6 +39,11 @@ EMSCRIPTEN_BINDINGS(FRRequirementsManager) {
     .function("init", &Node::init)
     .function("to_json", &Node::to_json);
 
+  class_<GraphNode, base<Node>>("GraphNode")
+    .smart_ptr_constructor("GraphNode", &std::make_shared<GraphNode>)
+    .function("setTitle", &GraphNode::setTitle)
+    .function("getTitle", &GraphNode::getTitle);
+
   class_<CommitableNode, base<Node>>("CommitableNode")
     .smart_ptr_constructor("CommitableNode", &std::make_shared<CommitableNode>)
     .function("commit", &CommitableNode::commit)
