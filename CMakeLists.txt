@@ -184,15 +184,17 @@ else()
     ${CMAKE_CURRENT_SOURCE_DIR}/src/EmscriptenApi.cpp
   )
 
-  add_library(FRRequirementsManagerLib STATIC
+  add_library(RequirementsManager STATIC
     ${LIBRARY_SOURCE}
   )
 
-  set_target_properties(FRRequirementsManagerLib PROPERTIES
+  add_library(FR::RequirementsManager ALIAS RequirementsManager)
+
+  set_target_properties(RequirementsManager PROPERTIES
     OUTPUT_NAME FRRequirementsManager_wasm
   )
 
-  target_include_directories(FRRequirementsManagerLib PUBLIC
+  target_include_directories(RequirementsManager PUBLIC
     "${Boost_INCLUDE_DIRS}"
     "${cereal_INCLUDE_DIRS}"
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -203,7 +205,7 @@ else()
     ${CMAKE_CURRENT_SOURCE_DIR}/src/EmscriptenApi.cpp
   )
 
-  target_link_libraries(FRRequirementsManagerModule PRIVATE FRRequirementsManagerLib)
+  target_link_libraries(FRRequirementsManagerModule PRIVATE RequirementsManager)
 
   target_link_options(FRRequirementsManagerModule PRIVATE "-sSINGLE_FILE=1" "-sMODULARIZE" "-sEXPORT_NAME=FRRequirementsManager" "--bind")
 
