@@ -82,6 +82,45 @@ namespace fr::RequirementsManager {
       id = generator();
     }
 
+    // Find a node ID in a vector
+    PtrType findIn(const std::string& id, std::vector<PtrType> &list) {
+      PtrType ret;
+      for (auto item : list) {
+        if (id == item->idString()) {
+          ret = item;
+          break;
+        }
+      }
+      return ret;
+    }
+
+    // Find a node ID in our uplist
+    PtrType findUp(const std::string& id) {
+      return findIn(id, up);
+    }
+
+    // Find a nide in our downlist
+    PtrType findDown(const std::string& id) {
+      return findIn(id, down);
+    }
+
+    // Add a node to a vector
+    void addNode(PtrType node, std::vector<PtrType> &list) {
+      if (!findIn(node->idString(), list)) {
+        list.push_back(node);
+      }
+    }
+
+    // Add a node to our uplist
+    void addUp(PtrType node) {
+      addNode(node, up);
+    }
+
+    // Add a node to our downlist
+    void addDown(PtrType node) {
+      addNode(node, down);
+    }
+
     // Returns ID as string. Note init must be called to actually
     // set the node.
     std::string idString() const {
