@@ -121,6 +121,24 @@ namespace fr::RequirementsManager {
       addNode(node, down);
     }
 
+    void removeFromList(PtrType node, std::vector<PtrType>& vec) {
+      vec.erase(std::remove_if(vec.begin(),
+                               vec.end(),
+                               [&node](PtrType n){
+                                 return n->idString() == node->idString();
+                               }),
+                vec.end());
+    }
+    
+    // Remove a node from the up list
+    void removeUp(PtrType node) {
+      return removeFromList(node, up);
+    }
+    
+    void removeDown(PtrType node) {
+      return removeFromList(node, down);
+    }
+    
     // Returns ID as string. Note init must be called to actually
     // set the node.
     std::string idString() const {
