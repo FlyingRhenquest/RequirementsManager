@@ -42,7 +42,7 @@ namespace fr::RequirementsManager {
   public:
 
     using Type = Product;
-    using PtrType = std::shared_ptr<Product>;
+    using PtrType = std::shared_ptr<Type>;
     using Parent = CommitableNode;
     
     Product() = default;
