@@ -17,6 +17,8 @@ set(USING_CEREAL_EXTERNAL FALSE)
 
 include(ExternalProject)
 
+set (EXTERNAL_INCLUDE_DIRS "")
+
 if (NOT Boost_FOUND)
   set(USING_BOOST_EXTERNAL TRUE)
   if (WINDOWS)
@@ -57,7 +59,7 @@ if (NOT Boost_FOUND)
 
   ExternalProject_Get_Property(BoostExternal INSTALL_DIR)  
   set(Boost_INCLUDE_DIRS "${INSTALL_DIR}/include")
-    
+  list(APPEND EXTERNAL_INCLUDE_DIRS "${Boost_INCLUDE_DIRS}")
 endif()
 
 if (NOT cereal_FOUND)
@@ -78,6 +80,7 @@ if (NOT cereal_FOUND)
 
   ExternalProject_Get_Property(CerealExternal INSTALL_DIR)
   set(cereal_INCLUDE_DIRS "${INSTALL_DIR}/include")
+  list(APPEND EXTERNAL_INCLUDE_DIRS "${cereal_INCLUDE_DIRS}")
 endif()
 
 if (NOT FRTypes_FOUND)
@@ -99,6 +102,7 @@ if (NOT FRTypes_FOUND)
 
   ExternalProject_Get_Property(FRTypesExternal INSTALL_DIR)
   set(FRTypes_INSTALL_DIR "${INSTALL_DIR}/include")
+  list(APPEND EXTERNAL_INCLUDE_DIRS "${FRTypes_INSTALL_DIR}")
 endif()
 
 option(BUILD_TESTS "Build unit tests" ON)
@@ -153,11 +157,13 @@ if (NOT EMSCRIPTEN)
     ${cereal_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
+    ${EXTERNAL_INCLUDE_DIRS}
   )
 
   target_include_directories(FRRequirements PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
+    ${EXTERNAL_INCLUDE_DIRS}
   )
 
   target_link_libraries(FRRequirements PUBLIC
@@ -199,6 +205,7 @@ else()
     "${cereal_INCLUDE_DIRS}"
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
+    ${EXTERNAL_INCLUDE_DIRS}
   )
   
   add_executable(FRRequirementsManagerModule
