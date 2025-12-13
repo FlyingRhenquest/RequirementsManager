@@ -88,7 +88,7 @@ if (NOT FRTypes_FOUND)
   set(FRTYPES_EXTERNAL_PREFIX "FrtypesExternal")
   set(FRTYPES_EXTERNAL_SOURCE "${FRTYPES_EXTERNAL_PREFIX}/source")
   set(FRTYPES_EXTERNAL_BUILD "${FRTYPES_EXTERNAL_PREFIX}/build")
-  set(FRTYPES_EXTERNAL_INSTALL "${FRTYPES_EXTERNAL_PREFIX}/insstall")
+  set(FRTYPES_EXTERNAL_INSTALL "${FRTYPES_EXTERNAL_PREFIX}/install")
 
   ExternalProject_Add(FRTypesExternal
     GIT_REPOSITORY "https://github.com/FlyingRhenquest/types.git"
