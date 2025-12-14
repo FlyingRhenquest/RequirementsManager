@@ -15,8 +15,6 @@
  */
 
 #include <fr/RequirementsManager.h>
-#include <fr/RequirementsManager/PqDatabase.h>
-#include <fr/RequirementsManager/PqNodeFactory.h>
 #include <fr/RequirementsManager/TaskNode.h>
 #include <fr/RequirementsManager/ThreadPool.h>
 #include <nanobind/nanobind.h>
@@ -26,6 +24,13 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 #include <memory>
+
+#ifdef INCLUDE_PQXX_SUPPORT
+
+#include <fr/RequirementsManager/PqDatabase.h>
+#include <fr/RequirementsManager/PqNodeFactory.h>
+
+#endif
 
 using namespace fr::RequirementsManager;
 
@@ -101,6 +106,9 @@ NB_MODULE(FRRequirements, m) {
     .def("join", &ThreadPool<WorkerThread>::join, "Join threadpool. Call after shutdown. This waits for the ThreadPool to complete its work and shut down completely.")
     ;
 
+
+#ifdef INCLUDE_PQXX_SUPPORT
+  
   // SaveNodesNode saves nodes in the Postgres database
   
   nanobind::class_<SaveNodesNode<WorkerThread>, TaskNode<WorkerThread>>(m, "SaveNodesNode")
@@ -116,6 +124,8 @@ NB_MODULE(FRRequirements, m) {
     .def("getNode", &PqNodeFactory<WorkerThread>::getNode, "Retrieves the node you asked to be loaded.")
     .def("graphLoaded", &PqNodeFactory<WorkerThread>::graphLoaded, "Returns true if your graph is loaded. The ThreadPool could still be busy loading node data into the nodes. You can check its workerStatus to see if it's still doing anything.")
     ;
+
+#endif
   
   // Node -- You won't tend to use this one directly --
   // other things inherit from it
