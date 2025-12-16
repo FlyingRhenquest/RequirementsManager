@@ -104,7 +104,9 @@ int main(int argc, char *argv[]) {
   std::string timeEstimateTable("CREATE TABLE IF NOT EXISTS time_estimate ("
                                 "id          uuid PRIMARY KEY,"
                                 "text        TEXT,"
-                                "estimate    BIGINT);");
+                                "estimate    BIGINT,"
+                                "started     BOOLEAN,"
+                                "start       TIMESTAMP);");
 
   std::string effortTable("CREATE TABLE IF NOT EXISTS effort ("
                           "id             uuid PRIMARY KEY,"

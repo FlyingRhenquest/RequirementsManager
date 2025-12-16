@@ -120,7 +120,11 @@ EMSCRIPTEN_BINDINGS(FRRequirementsManager) {
     .function("setText", &TimeEstimate::setText)
     .function("getText", &TimeEstimate::getText)
     .function("setEstimate", &TimeEstimate::setEstimate)
-    .function("getEstimate", &TimeEstimate::getEstimate);
+    .function("getEstimate", &TimeEstimate::getEstimate)
+    .function("setStarted", &TimeEstimate::setStarted)
+    .function("getStarted", &TimeEstimate::getStarted)
+    .function("setStartTimestamp", &TimeEstimate::setStartTimestamp)
+    .function("getStartTimestmap", &TimeEstimate::getStartTimestamp);
 
   class_<Effort, base<Node>>("Effort")
     .smart_ptr_constructor("Effort", &std::make_shared<Effort>)

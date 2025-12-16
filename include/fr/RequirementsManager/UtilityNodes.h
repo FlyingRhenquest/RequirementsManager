@@ -204,11 +204,23 @@ namespace fr::RequirementsManager {
   private:
     // Descriptive text for this estimate
     std::string _text;
+    // Estimate probably in seconds
     unsigned long _estimate;
+    // _estimate should be taken as an offset from
+    // whenever the work starts. If started is true
+    // then the remaining work should be the start
+    // date plus the estimate date minus the current date.
+    bool _started;
+    // Start timestamp
+    time_t _startTimestamp;
 
   public:
 
-    TimeEstimate() = default;
+    TimeEstimate() : _estimate(0l),
+                     _started(false),
+                     _startTimestamp(0l) {
+    }
+    
     virtual ~TimeEstimate() = default;
 
     std::string getNodeType() const override {
@@ -231,11 +243,29 @@ namespace fr::RequirementsManager {
       return _estimate;
     }
 
+    bool getStarted() const {
+      return _started;
+    }
+
+    void setStarted(bool started) {
+      _started = started;
+    }
+
+    time_t getStartTimestamp() const {
+      return _startTimestamp;
+    }
+
+    void setStartTimestamp(time_t stamp) {
+      _startTimestamp = stamp;
+    }
+
     template <class Archive>
     void save(Archive &ar) const {
       ar(cereal::make_nvp(Parent::getNodeType(), cereal::base_class<Parent>(this)));
       ar(cereal::make_nvp("text", _text));
       ar(cereal::make_nvp("estimate", _estimate));
+      ar(cereal::make_nvp("started", _started));
+      ar(cereal::make_nvp("startTimestamp", _startTimestamp));
     }
 
     template <class Archive>
@@ -243,6 +273,8 @@ namespace fr::RequirementsManager {
       ar(cereal::base_class<Parent>(this));
       ar(_text);
       ar(_estimate);
+      ar(_started);
+      ar(_startTimestamp);
     }
   };
 

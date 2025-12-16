@@ -224,7 +224,11 @@ NB_MODULE(FRRequirements, m) {
     .def("setText", &TimeEstimate::setText, "Sets the text for this node")
     .def("getText", &TimeEstimate::getText, "Gets the text for this node")
     .def("setEstimate", &TimeEstimate::setEstimate, "Set the estimate (Duration, seconds) for this node")
-    .def("getEstimate", &TimeEstimate::getEstimate, "Gets the estimate (Duration, seconds) for this node");
+    .def("getEstimate", &TimeEstimate::getEstimate, "Gets the estimate (Duration, seconds) for this node")
+    .def("setStarted", &TimeEstimate::setStarted, "Indicates work on this estimate has started.")
+    .def("getStarted", &TimeEstimate::getStarted, "Indicates work on this estimate has started.")
+    .def("setStartTimestamp", &TimeEstimate::setStartTimestamp, "Date work on this estimate started.")
+    .def("getStartTimestamp", &TimeEstimate::getStartTimestamp, "Date work on this estimate started.");
 
   nanobind::class_<Effort, Node>(m, "Effort")
     .def(nanobind::new_([](){return std::make_shared<Effort>();}))

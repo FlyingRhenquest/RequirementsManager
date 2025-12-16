@@ -604,20 +604,24 @@ namespace fr::RequirementsManager::database {
     static constexpr char tableName[] = "time_estimate";
 
     void insert(TimeEstimate::PtrType node, pqxx::work& transaction) {
-      std::string cmd("INSERT INTO time_estimate (id, text, estimate) values ($1, $2, $3);");
+      std::string cmd("INSERT INTO time_estimate (id, text, estimate, started, start) values ($1, $2, $3, $4, $5);");
       pqxx::params p{
         node->idString(),
         node->getText(),
-        node->getEstimate()
+        node->getEstimate(),
+        node->getStarted(),
+        node->getStartTimestamp()
       };
       transaction.exec(cmd, p);
     }
 
     void update(TimeEstimate::PtrType node, pqxx::work& transaction) {
-      std::string cmd("UPDATE time_estimate SET text=$1, estimate=$2 WHERE id = $3;");
+      std::string cmd("UPDATE time_estimate SET text=$1, estimate=$2, started=$3, start=$4  WHERE id = $5;");
       pqxx::params p{
         node->getText(),
         node->getEstimate(),
+        node->getStarted(),
+        node->getStartTimestamp(),
         node->idString()
       };
       transaction.exec(cmd, p);
@@ -642,6 +646,8 @@ namespace fr::RequirementsManager::database {
       for (auto const &row : res) {
         node->setText(row["text"].as<std::string>());
         node->setEstimate(row["estimate"].as<unsigned long>());
+        node->setStarted(row["started"].as<bool>());
+        node->setStartTimestamp(row["start"].as<time_t>());
       }
       return ret;
     }
