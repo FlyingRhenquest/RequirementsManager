@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <fr/RequirementsManager/GraphNode.h>
+#include <fr/RequirementsManager/Node.h>
 
 namespace fr::RequirementsManager {
 
