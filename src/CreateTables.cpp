@@ -158,7 +158,7 @@ int main(int argc, char *argv[]) {
   std::string internationalAddressTable("CREATE TABLE IF NOT EXISTS international_address ("
                                         "id            uuid PRIMARY KEY,"
                                         "country_code  VARCHAR(20),"
-                                        "address_lines uuid,"
+                                        "address_lines TEXT,"
                                         "locality      VARCHAR(200),"
                                         "postal_code   VARCHAR(50));");
 
@@ -166,7 +166,7 @@ int main(int argc, char *argv[]) {
   // address lines.
   std::string usAddressTable("CREATE TABLE IF NOT EXISTS us_address ("
                               "id                  uuid PRIMARY KEY,"
-                              "address_lines       uuid,"
+                              "address_lines       TEXT,"
                               "city                VARCHAR(100),"
                               "state               VARCHAR(40),"
                               "zipcode             VARCHAR(20));");

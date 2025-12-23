@@ -1116,22 +1116,11 @@ namespace fr::RequirementsManager::database {
     void insert(InternationalAddress::PtrType node, pqxx::work& transaction) {
       std::string cmd("INSERT INTO international_address (id, country_code, address_lines,"
                       "locality, postal_code) VALUES ($1, $2, $3, $4, $5);");
-      std::string addressId;
 
-      // address lines are a pointer to a text node, so we just need
-      // to check it for null and set it to the id of the text node
-      // if it's not null.
-      auto addressLines = node->getAddressLines();
-      if (addressLines) {
-        addressId = addressLines->idString();
-      } else {
-        addressId = "null";
-      }
-      
       pqxx::params p{
         node->idString(),
         node->getCountryCode(),
-        addressId,
+        node->getAddressLines(),
         node->getLocality(),
         node->getPostalCode()        
       };
@@ -1142,17 +1131,9 @@ namespace fr::RequirementsManager::database {
       std::string cmd("UPDATE international_address SET country_code = $1, address_lines = $2,"
                       "locality = $3, postal_code = $4 WHERE id = $5;");
 
-      std::string addressId;
-      auto addressLines = node->getAddressLines();
-      if (addressLines) {
-        addressId = addressLines->idString();
-      } else {
-        addressId = "null";
-      }
-      
       pqxx::params p{
         node->getCountryCode(),
-        addressId,
+        node->getAddressLines(),
         node->getLocality(),
         node->getPostalCode(),
         node->idString()
@@ -1203,16 +1184,10 @@ namespace fr::RequirementsManager::database {
                       "VALUES ($1, $2, $3, $4, $5);");
 
       std::string addressId;
-      auto addressLines = node->getAddressLines();
-      if (addressLines) {
-        addressId = addressLines->idString();
-      } else {
-        addressId = "null";
-      }
 
       pqxx::params p{
         node->idString(),
-        addressId,
+        node->getAddressLines(),
         node->getCity(),
         node->getState(),
         node->getZipCode()
@@ -1224,16 +1199,8 @@ namespace fr::RequirementsManager::database {
       std::string cmd("UPDATE us_address SET address_lines = $1, city = $2, state = $3, "
                       "zipcode = $4 WHERE id = $5;");
 
-      std::string addressId;
-      auto addressLines = node->getAddressLines();
-      if (addressLines) {
-        addressId = addressLines->idString();
-      } else {
-        addressId = "null";
-      }
-
       pqxx::params p{
-        addressId,
+        node->getAddressLines(),
         node->getCity(),
         node->getState(),
         node->getZipCode(),

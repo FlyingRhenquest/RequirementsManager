@@ -279,24 +279,6 @@ namespace fr::RequirementsManager {
           traverse(child);
         }
       }
-
-      // Check and see if this is an international address and if so
-      // save the address line nodes associated with that
-
-      auto interAddress = std::dynamic_pointer_cast<InternationalAddress>(node);
-      if (interAddress) {
-        if (interAddress->getAddressLines()) {
-          traverse(interAddress->getAddressLines());
-        }
-      }
-          
-      // Same thing for US Address
-      auto usAddress = std::dynamic_pointer_cast<USAddress>(node);
-      if (usAddress) {
-        if (usAddress->getAddressLines()) {
-          traverse(usAddress->getAddressLines());
-        }
-      }
     }
     
   public:

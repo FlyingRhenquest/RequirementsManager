@@ -455,6 +455,7 @@ namespace fr::RequirementsManager {
     std::string _targetDateConfidence;
     // Why we have goal first place?
     std::string _alignment;
+    tm _tmNow;
 
   public:
 
@@ -779,12 +780,8 @@ namespace fr::RequirementsManager {
   class InternationalAddress : public Node {
     // Ideally ISO 3166-1 Country code
     std::string _countryCode;
-    // Address lines. In the USA this would be street
-    // address. This is a text node, so if you need more
-    // than one line, just drop another text node in the down list
-    // of the first one.
-    // TODO: Make sure display code handles this
-    Text::PtrType _addressLines;
+    // Address lines with \ns separating each line
+    std::string _addressLines;
     // City/Town
     std::string _locality;
     // Zip code/Post Code
@@ -807,7 +804,7 @@ namespace fr::RequirementsManager {
     // Just construct your whole address lines text node
     // and slap it in here. I'm already predicting this will
     // cause me problems in the future lol.
-    void setAddressLines(Text::PtrType addressLines) {
+    void setAddressLines(std::string addressLines) {
       _addressLines = addressLines;
     }
 
@@ -826,7 +823,7 @@ namespace fr::RequirementsManager {
     // Since this one is returning a pointer, I can't guarantee
     // constness
     
-    Text::PtrType getAddressLines() {
+    std::string getAddressLines() {
       return _addressLines;
     }
 
@@ -863,7 +860,7 @@ namespace fr::RequirementsManager {
    */
 
   class USAddress : public Node {
-    Text::PtrType _addressLines;
+    std::string _addressLines;
     std::string _city;
     std::string _state;
     std::string _zipCode;
@@ -883,7 +880,7 @@ namespace fr::RequirementsManager {
     // Like InternationaAddress, just construct your address
     // lines from text nodes and drop the whole structure in
     // here (one node per address line)
-    void setAddressLines(Text::PtrType addressLines) {
+    void setAddressLines(std::string addressLines) {
       _addressLines = addressLines;
     }
 
@@ -900,7 +897,7 @@ namespace fr::RequirementsManager {
     }
 
     // Can't guarantee this is const since we're returning a pointer
-    Text::PtrType getAddressLines() {
+    std::string getAddressLines() {
       return _addressLines;
     }
 
