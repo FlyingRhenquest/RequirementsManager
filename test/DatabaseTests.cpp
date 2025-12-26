@@ -15,11 +15,11 @@
  *
  */
 
-#include <gtest/gtest.h>
 #include <fr/RequirementsManager/Node.h>
 #include <fr/RequirementsManager/NodeConnector.h>
 #include <fr/RequirementsManager/PqDatabase.h>
 #include <fr/RequirementsManager/ThreadPool.h>
+#include <gtest/gtest.h>
 
 using namespace fr::RequirementsManager;
 /**
@@ -59,12 +59,13 @@ TEST(DatabaseTests, TwoNodesThreadPool) {
 
   // Intercept signal from saver and wake this process up when it is
   // received.
-  
-  saver->complete.connect([&waitCv, &savedId](const std::string& id, Node::PtrType /* notused */) {
-    savedId = id;
-    waitCv.notify_one();
-  });      
-  
+
+  saver->complete.connect(
+      [&waitCv, &savedId](const std::string &id, Node::PtrType /* notused */) {
+        savedId = id;
+        waitCv.notify_one();
+      });
+
   threadpool->enqueue(saver);
   std::unique_lock lock(waitMutex);
   std::cout << "Waiting for initial save to complete..." << std::endl;
@@ -74,7 +75,7 @@ TEST(DatabaseTests, TwoNodesThreadPool) {
   // I need to pass the lambda in to prevent a spurious wakeup from
   // waking us up early. The wait will only continue once savedId
   // has received a value from the "complete" callback in saver.
-  waitCv.wait(lock, [&savedId](){ return !savedId.empty(); });
+  waitCv.wait(lock, [&savedId]() { return !savedId.empty(); });
   std::cout << "Initial save complete: " << savedId << std::endl;
   threadpool->shutdown();
   threadpool->join();
@@ -89,7 +90,7 @@ TEST(DatabaseTests, TwoNodesThreadPool) {
 TEST(DatabaseTests, SpecificNodeTests) {
   std::mutex waitMutex;
   std::condition_variable waitCv;
-  std::string savedId;  
+  std::string savedId;
   auto projectTestWombat = std::make_shared<fr::RequirementsManager::Project>();
   auto wombatProduct = std::make_shared<fr::RequirementsManager::Product>();
   projectTestWombat->setName("Test Wombat");
@@ -101,15 +102,16 @@ TEST(DatabaseTests, SpecificNodeTests) {
   threadpool->startThreads(4);
   auto saver = std::make_shared<SaveNodesNode<WorkerThread>>(projectTestWombat);
 
-  saver->complete.connect([&waitCv, &savedId](const std::string& id, Node::PtrType /* NotUsed */) {
-    savedId = id;
-    waitCv.notify_one();
-  });
+  saver->complete.connect(
+      [&waitCv, &savedId](const std::string &id, Node::PtrType /* NotUsed */) {
+        savedId = id;
+        waitCv.notify_one();
+      });
 
   std::unique_lock lock(waitMutex);
   std::cout << "Waiting for initial save to complete..." << std::endl;
   threadpool->enqueue(saver);
-  waitCv.wait(lock, [&savedId](){return !savedId.empty();});
+  waitCv.wait(lock, [&savedId]() { return !savedId.empty(); });
   std::cout << "Initial save complete: " << savedId << std::endl;
   threadpool->shutdown();
   threadpool->join();

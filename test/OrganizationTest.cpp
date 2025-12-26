@@ -14,8 +14,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <gtest/gtest.h>
 #include <fr/RequirementsManager/Organization.h>
+#include <gtest/gtest.h>
 
 using namespace fr::RequirementsManager;
 
@@ -29,7 +29,7 @@ TEST(Organization, BasicFunctionality) {
   bool threw = false;
   try {
     org->setName("Inc, Inc.");
-  } catch (std::exception& e) {
+  } catch (std::exception &e) {
     threw = true;
   }
   ASSERT_TRUE(threw);

@@ -14,9 +14,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <gtest/gtest.h>
 #include <boost/uuid/uuid_io.hpp>
 #include <fr/RequirementsManager/Node.h>
+#include <gtest/gtest.h>
 #include <iostream>
 #include <sstream>
 
@@ -38,7 +38,7 @@ TEST(NodeTests, InitNode) {
 // list.
 
 void insertChildren(fr::RequirementsManager::Node::PtrType parent) {
-  for(int i = 0; i < 5; ++i) {
+  for (int i = 0; i < 5; ++i) {
     auto child = std::make_shared<fr::RequirementsManager::Node>();
     child->init();
     parent->down.push_back(child);
@@ -53,7 +53,7 @@ TEST(NodeTests, Serialization) {
   // insert some random children
   insertChildren(original);
   // Also insert children in all the children because why not?
-  for(auto child : original->down) {
+  for (auto child : original->down) {
     insertChildren(child);
   }
   // Serialize to a StringStream (JSON)
@@ -73,7 +73,7 @@ TEST(NodeTests, Serialization) {
   ASSERT_EQ(original->id, copy->id);
   auto oChild = original->down.begin();
   auto cChild = original->down.begin();
-  while(oChild != original->down.end() && cChild != original->down.end()) {
+  while (oChild != original->down.end() && cChild != original->down.end()) {
     ASSERT_EQ((*oChild)->id, (*cChild)->id);
     oChild++;
     cChild++;

@@ -14,8 +14,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <gtest/gtest.h>
 #include <fr/RequirementsManager/CommitableNode.h>
+#include <gtest/gtest.h>
 
 using namespace fr::RequirementsManager;
 
@@ -37,7 +37,7 @@ TEST(CommitableNode, DiscardChanges) {
   bool threw = false;
   try {
     parent->discardChange();
-  } catch (std::exception& e) {
+  } catch (std::exception &e) {
     threw = true;
   }
   ASSERT_TRUE(threw);

@@ -19,17 +19,17 @@
  * PostgreSQL database
  */
 
-#include <pqxx/pqxx>
 #include <iostream>
+#include <pqxx/pqxx>
 
 int main(int argc, char *argv[]) {
   pqxx::connection connection;
-  
+
   if (!connection.is_open()) {
     std::cout << "Unable to connect to database" << std::endl;
     exit(1);
   }
-  
+
   std::cout << "Connected to " << connection.dbname() << std::endl;
 
   pqxx::work transaction(connection);
@@ -40,12 +40,13 @@ int main(int argc, char *argv[]) {
                         "id          uuid PRIMARY KEY,"
                         "node_type   VARCHAR(100) NOT NULL);");
 
-  std::string nodeAssociationType("CREATE TYPE association_type AS ENUM('up', 'down');");
-  
+  std::string nodeAssociationType(
+      "CREATE TYPE association_type AS ENUM('up', 'down');");
+
   std::string nodeAssociations("CREATE TABLE IF NOT EXISTS node_associations ("
-                        "id            uuid,"
-                        "association   uuid,"
-                        "type          association_type);");
+                               "id            uuid,"
+                               "association   uuid,"
+                               "type          association_type);");
 
   std::string graphNodeTable("CREATE TABLE IF NOT EXISTS graph_node ("
                              "id              uuid PRIMARY KEY,"
@@ -60,7 +61,6 @@ int main(int argc, char *argv[]) {
                                   "id              uuid PRIMARY KEY,"
                                   "change_parent   uuid,"
                                   "change_child    uuid)");
-                                  
 
   std::string productTable("CREATE TABLE IF NOT EXISTS product ("
                            "id      uuid PRIMARY KEY,"
@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
                                "title    VARCHAR(200) NOT NULL,"
                                "text     TEXT,"
                                "functional BOOLEAN NOT NULL DEFAULT FALSE);");
-  
+
   std::string storyTable("CREATE TABLE IF NOT EXISTS story ("
                          "id           uuid PRIMARY KEY,"
                          "title        VARCHAR(200) NOT NULL,"
@@ -93,8 +93,8 @@ int main(int argc, char *argv[]) {
                         "text          TEXT);");
 
   std::string completedTable("CREATE TABLE IF NOT EXISTS completed ("
-                        "id            uuid PRIMARY KEY,"
-                        "description   text);");
+                             "id            uuid PRIMARY KEY,"
+                             "description   text);");
 
   std::string keyValueTable("CREATE TABLE IF NOT EXISTS keyvalue ("
                             "id           uuid PRIMARY KEY,"
@@ -155,30 +155,33 @@ int main(int argc, char *argv[]) {
   // store the first text node UUID in address lines here and the
   // store/retrieve code will grab the first one and traverse it
   // as if it were any other node.
-  std::string internationalAddressTable("CREATE TABLE IF NOT EXISTS international_address ("
-                                        "id            uuid PRIMARY KEY,"
-                                        "country_code  VARCHAR(20),"
-                                        "address_lines TEXT,"
-                                        "locality      VARCHAR(200),"
-                                        "postal_code   VARCHAR(50));");
+  std::string internationalAddressTable(
+      "CREATE TABLE IF NOT EXISTS international_address ("
+      "id            uuid PRIMARY KEY,"
+      "country_code  VARCHAR(20),"
+      "address_lines TEXT,"
+      "locality      VARCHAR(200),"
+      "postal_code   VARCHAR(50));");
 
   // USAddress does the same thing as international address with its
   // address lines.
   std::string usAddressTable("CREATE TABLE IF NOT EXISTS us_address ("
-                              "id                  uuid PRIMARY KEY,"
-                              "address_lines       TEXT,"
-                              "city                VARCHAR(100),"
-                              "state               VARCHAR(40),"
-                              "zipcode             VARCHAR(20));");
+                             "id                  uuid PRIMARY KEY,"
+                             "address_lines       TEXT,"
+                             "city                VARCHAR(100),"
+                             "state               VARCHAR(40),"
+                             "zipcode             VARCHAR(20));");
 
   std::string eventTable("CREATE TABLE IF NOT EXISTS event ("
                          "id                  uuid PRIMARY KEY,"
                          "name                VARCHAR(200),"
                          "description         TEXT);");
-                               
 
   std::cout << "Checking to see if association_type exists...";
-  pqxx::result res = transaction.exec("SELECT EXISTS(SELECT 1 FROM pg_type AS t JOIN pg_namespace AS n ON n.oid = t.typnamespace where t.typname = 'association_type' AND n.nspname = 'public' AND t.typtype = 'e');");
+  pqxx::result res = transaction.exec(
+      "SELECT EXISTS(SELECT 1 FROM pg_type AS t JOIN pg_namespace AS n ON "
+      "n.oid = t.typnamespace where t.typname = 'association_type' AND "
+      "n.nspname = 'public' AND t.typtype = 'e');");
   bool enumExists = false;
   if (res.size() == 1) {
     enumExists = res[0][0].as<bool>();
@@ -206,7 +209,7 @@ int main(int argc, char *argv[]) {
   std::cout << " Done" << std::endl;
   std::cout << "Creating commitable node table...";
   transaction.exec(commitableNodeTable);
-  std::cout <<" Done" << std::endl;
+  std::cout << " Done" << std::endl;
   std::cout << "Creating project table...";
   transaction.exec(projectTable);
   std::cout << " Done" << std::endl;
@@ -225,7 +228,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Creating text table...";
   transaction.exec(textTable);
   std::cout << " Done" << std::endl;
-  std::cout <<"Creating completed table...";
+  std::cout << "Creating completed table...";
   transaction.exec(completedTable);
   std::cout << " Done" << std::endl;
   std::cout << "Creating keyvalue table...";

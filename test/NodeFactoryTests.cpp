@@ -14,11 +14,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <gtest/gtest.h>
 #include <fr/RequirementsManager.h>
 #include <fr/RequirementsManager/NodeConnector.h>
 #include <fr/RequirementsManager/PqDatabase.h>
 #include <fr/RequirementsManager/PqNodeFactory.h>
+#include <gtest/gtest.h>
 #include <mutex>
 #include <thread>
 
@@ -33,7 +33,8 @@ TEST(NodeFactoryTest, BasicAllocator) {
   // Node actually isn't in the list, it's just the default type
   // returned if we don't find the correct one.
   auto node = allocator.get("Node", "019ae1b4-53e6-72d5-8058-b0f8014f75e8");
-  auto unknownNode = allocator.get("unknown", "019ae1b4-53fb-7304-80f1-7328836d47d3");
+  auto unknownNode =
+      allocator.get("unknown", "019ae1b4-53fb-7304-80f1-7328836d47d3");
   // Check for null (get should never return null)
   ASSERT_TRUE(node);
   ASSERT_TRUE(unknownNode);
@@ -47,7 +48,8 @@ TEST(NodeFactoryTest, BasicAllocator) {
 TEST(NodeFactoryTest, SpecificAllocations) {
   NodeAllocator allocator;
 
-  auto org = allocator.get("Organization", "019ae1b4-53fb-7355-809c-53ac3157930d");
+  auto org =
+      allocator.get("Organization", "019ae1b4-53fb-7355-809c-53ac3157930d");
   auto event = allocator.get("Event", "019ae1b4-5414-7012-8040-de09cd8188ac");
   auto goal = allocator.get("Goal", "019ae1b4-5414-7033-8056-a3d498e1c7ea");
 
@@ -65,7 +67,8 @@ TEST(NodeFactoryTest, SpecificAllocations) {
 }
 
 TEST(NodeFactoryTest, LoadAGraph) {
-  auto org = std::make_shared<Organization>();;
+  auto org = std::make_shared<Organization>();
+  ;
   org->setName("Global Consolidated Software Engineering, Inc.");
   org->lock();
   auto project = std::make_shared<Project>();
@@ -92,19 +95,21 @@ TEST(NodeFactoryTest, LoadAGraph) {
   // Saver will signal after each node that was saved. Each time that
   // happens we want to wake up and see if the whole graph has been
   // saved yet before we continue.
-  saver->complete.connect([&waitCv](const std::string& id, Node::PtrType /* NotUsed */) {
-    waitCv.notify_one();
-  });
+  saver->complete.connect(
+      [&waitCv](const std::string &id, Node::PtrType /* NotUsed */) {
+        waitCv.notify_one();
+      });
 
   threadpool->enqueue(saver);
   std::unique_lock lock(waitMutex);
   // Will only wake up once treeSaveComplete returns true.
-  waitCv.wait(lock, [&saver](){ return saver->treeSaveComplete(); });
+  waitCv.wait(lock, [&saver]() { return saver->treeSaveComplete(); });
   // OK! Let's load it!
   auto factory = std::make_shared<PqNodeFactory<WorkerThread>>(org->idString());
   std::string nodeLoaded;
-  
-  factory->loaded.connect([&waitCv, &nodeLoaded](const std::string& id, Node::PtrType /* NotUsed */) {
+
+  factory->loaded.connect([&waitCv, &nodeLoaded](const std::string &id,
+                                                 Node::PtrType /* NotUsed */) {
     nodeLoaded = id;
     waitCv.notify_one();
   });
@@ -112,7 +117,7 @@ TEST(NodeFactoryTest, LoadAGraph) {
   // Wait for the factory to signal that something has been loaded.
   // Doesn't really matter what -- we'll just shut the threadpool
   // down and wait for it to finish loading.
-  waitCv.wait(lock, [&nodeLoaded](){ return !nodeLoaded.empty();});
+  waitCv.wait(lock, [&nodeLoaded]() { return !nodeLoaded.empty(); });
   threadpool->shutdown();
   threadpool->join();
   auto restoredOrg = factory->getNode();
@@ -121,5 +126,4 @@ TEST(NodeFactoryTest, LoadAGraph) {
   ASSERT_TRUE(restoredOrg);
   ASSERT_EQ(restoredOrg->idString(), org->idString());
   ASSERT_EQ(restoredOrg->down.size(), org->down.size());
-  
 }

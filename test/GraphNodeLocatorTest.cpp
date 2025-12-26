@@ -14,10 +14,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <gtest/gtest.h>
+#include <fr/RequirementsManager/GraphNodeLocator.h>
 #include <fr/RequirementsManager/PqDatabase.h>
 #include <fr/RequirementsManager/PqNodeFactory.h>
-#include <fr/RequirementsManager/GraphNodeLocator.h>
+#include <gtest/gtest.h>
 #include <mutex>
 #include <thread>
 
@@ -35,13 +35,14 @@ TEST(GraphNodeLocatorTests, WriteRead) {
   threadpool->startThreads(4);
   auto saver = std::make_shared<SaveNodesNode<WorkerThread>>(node);
   bool saved = false;
-  saver->complete.connect([&waitCv, &saved](const std::string&id, Node::PtrType /* Notused */) {
-    saved = true;
-    waitCv.notify_one();
-  });
+  saver->complete.connect(
+      [&waitCv, &saved](const std::string &id, Node::PtrType /* Notused */) {
+        saved = true;
+        waitCv.notify_one();
+      });
   threadpool->enqueue(saver);
   std::unique_lock lock(waitMutex);
-  waitCv.wait(lock, [&saved](){return saved;});
+  waitCv.wait(lock, [&saved]() { return saved; });
   threadpool->shutdown();
   threadpool->join();
   GraphNodeLocator locator;

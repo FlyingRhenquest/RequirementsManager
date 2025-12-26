@@ -14,8 +14,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <gtest/gtest.h>
 #include <fr/RequirementsManager/Requirement.h>
+#include <gtest/gtest.h>
 #include <sstream>
 
 using namespace fr::RequirementsManager;
@@ -116,7 +116,8 @@ TEST(Requirement, Serialization) {
   const std::string title("Requirement Title");
   const std::string text("Some requirement text");
   const std::string childTitle("Changed Requirement Title");
-  const std::string childText("Some requirement text with some additional text");
+  const std::string childText(
+      "Some requirement text with some additional text");
   r->setTitle(title);
   r->setText(text);
   r->commit();
@@ -177,14 +178,14 @@ TEST(Requirement, SubRequirement) {
   // iterate children relationships
   bool foundChild = false;
   bool foundAnotherChild = false;
-  for(auto childNode : r->down) {
+  for (auto childNode : r->down) {
     auto currentNode = std::dynamic_pointer_cast<Requirement>(childNode);
     if (currentNode) {
       if (currentNode->getTitle() == childTitle) {
-	foundChild = true;
+        foundChild = true;
       }
       if (currentNode->getTitle() == anotherChild) {
-	foundAnotherChild = true;
+        foundAnotherChild = true;
       }
     }
   }

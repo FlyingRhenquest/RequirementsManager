@@ -18,20 +18,20 @@
 
 namespace fr::RequirementsManager {
 
-  void connectNodes(Node::PtrType parent, Node::PtrType child) {
-    if (!parent->initted) {
-      parent->init();
-    }
-
-    if (!child->initted) {
-      child->init();
-    }
-
-    parent->changed = true;
-    child->changed = true;
-
-    parent->down.push_back(child);
-    child->up.push_back(parent);
+void connectNodes(Node::PtrType parent, Node::PtrType child) {
+  if (!parent->initted) {
+    parent->init();
   }
-  
+
+  if (!child->initted) {
+    child->init();
+  }
+
+  parent->changed = true;
+  child->changed = true;
+
+  parent->down.push_back(child);
+  child->up.push_back(parent);
 }
+
+} // namespace fr::RequirementsManager
