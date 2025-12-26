@@ -24,12 +24,14 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <functional>
 #include <iostream>
 #include <list>
 #include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 
 
 namespace fr::RequirementsManager {
@@ -40,7 +42,45 @@ namespace fr::RequirementsManager {
    */
 
   struct Node : public std::enable_shared_from_this<Node> {
+  public:
     using PtrType = std::shared_ptr<Node>;
+    
+  protected:
+
+    // Private function to traverse graph. Public entrypoint does not contain visisted
+    // reference
+    
+    virtual void traverse(std::function<void(PtrType)> eachNodeFn, std::unordered_map<std::string, PtrType> &visited) {
+      // Handle this node
+
+      // Force init if not already initted
+      if (!this->initted) {
+        this->init();
+      }
+
+      if (! visited.contains(this->idString())) {
+        visited[this->idString()] = this->shared_from_this();
+        if (eachNodeFn) {
+          eachNodeFn(this->shared_from_this());
+        }
+      }
+
+      // Handle up nodes
+      for (auto upNode : up) {
+        if (! visited.contains(upNode->idString())) {
+          upNode->traverse(eachNodeFn, visited);
+        }
+      }
+
+      // Handle down nodes
+      for (auto downNode : down) {
+        if (! visited.contains(downNode->idString())) {
+          downNode->traverse(eachNodeFn, visited);
+        }
+      }
+    }
+    
+  public:
 
     // Lock nodeMutex before changing values, serializing/deserializing
     // or storing the node in a database. Always release the
@@ -112,15 +152,18 @@ namespace fr::RequirementsManager {
     }
 
     // Add a node to our uplist
-    void addUp(PtrType node) {
+    PtrType addUp(PtrType node) {
       addNode(node, up);
+      return node;
     }
 
     // Add a node to our downlist
-    void addDown(PtrType node) {
+    PtrType addDown(PtrType node) {
       addNode(node, down);
+      return node;
     }
 
+    // Remove a node from a vector
     void removeFromList(PtrType node, std::vector<PtrType>& vec) {
       vec.erase(std::remove_if(vec.begin(),
                                vec.end(),
@@ -128,6 +171,15 @@ namespace fr::RequirementsManager {
                                  return n->idString() == node->idString();
                                }),
                 vec.end());
+    }
+
+    // Traverse the graph from this node. Pass traverse a lambda to be run
+    // against each visited node.
+
+    virtual void traverse(std::function<void(PtrType)> eachNodeFn) {
+      std::unordered_map<std::string,PtrType> visited;
+
+      traverse(eachNodeFn, visited);
     }
     
     // Remove a node from the up list

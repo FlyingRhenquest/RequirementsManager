@@ -42,3 +42,23 @@ TEST(CommitableNode, DiscardChanges) {
   }
   ASSERT_TRUE(threw);
 }
+
+// CommitableNodes should also traverse into
+// changeNode
+TEST(CommitableNode, Traverse) {
+  auto parent = std::make_shared<CommitableNode>();
+  parent->init();
+  parent->commit();
+  auto child = getChangeNode(parent);
+  if (!child->initted) {
+    child->init();
+  }
+  child->commit();
+  int addCount = 2;
+  int traverseCount = 0;
+  parent->traverse([&traverseCount](Node::PtrType node) {
+    std::cout << "Traversed into " << node->idString() << std::endl;
+    traverseCount++;
+  });
+  ASSERT_EQ(addCount, traverseCount);
+}

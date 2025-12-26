@@ -57,7 +57,19 @@ namespace fr::RequirementsManager {
 
     template <typename T> friend std::shared_ptr<T> getChangeNode(std::shared_ptr<T> node);
 
+        
   protected:
+
+    void traverse(std::function<void(Node::PtrType)> eachNodeFn, std::unordered_map<std::string, Node::PtrType> &visited) override {
+      Parent::traverse(eachNodeFn, visited);
+
+      if (_changeParent && !visited.contains(_changeParent->idString())) {
+        _changeParent->traverse(eachNodeFn, visited);
+      }
+      if (_changeChild && !visited.contains(_changeChild->idString())) {
+        _changeChild->traverse(eachNodeFn, visited);
+      }
+    }
 
     bool _committed = false;
     // Parent node that this one changes. Will be nullptr if this
@@ -93,6 +105,10 @@ namespace fr::RequirementsManager {
       return _changeChild;
     }
 
+    void traverse(std::function<void(Node::PtrType)> eachNodeFn) override {
+      Parent::traverse(eachNodeFn);
+    }
+    
     // Return changeParent node. You need to check this for nullptr
     // prior to trying to use it.
     PtrType getChangeParent() {

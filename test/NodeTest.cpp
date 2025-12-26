@@ -33,6 +33,31 @@ TEST(NodeTests, InitNode) {
   ASSERT_EQ(n.id.version(), 7);
 }
 
+// Test node traversal code
+TEST(NodeTests,Traversal) {
+  auto n = std::make_shared<fr::RequirementsManager::Node>();
+  n->init();
+  // We start addedCounter at 1 to account for the starting node
+  int addedCounter = 1;
+  for (int i = 0 ; i < 5; ++i) {
+    // Add some up and down nodes
+    auto u = n->addUp(std::make_shared<fr::RequirementsManager::Node>());
+    u->init();
+    std::cout << "Added "  << u->idString() << " to uplist" << std::endl;
+    auto d = n->addDown(std::make_shared<fr::RequirementsManager::Node>());
+    d->init();
+    std::cout << "Added " << d->idString() << " to downlist " << std::endl;
+    addedCounter += 2;
+  }
+  int traverseCounter = 0;
+  n->traverse([&traverseCounter](fr::RequirementsManager::Node::PtrType node) {
+    traverseCounter++;
+    std::cout << "Traversed into " << node->idString() << std::endl;
+  });
+  std::cout << "Traverse counter is " << traverseCounter << std::endl;
+  ASSERT_EQ(addedCounter, traverseCounter);
+}
+
 // InsertChildren inserts a few nodes in the passed node's
 // down list and adds the passed node to the children's up
 // list.
