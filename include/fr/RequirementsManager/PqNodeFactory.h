@@ -291,6 +291,7 @@ namespace fr::RequirementsManager {
   public:
 
     boost::signals2::signal<void(const std::string&, Node::PtrType)> loaded;
+    boost::signals2::signal<void(const std::string&)> done;
     
     PqNodeFactory(const std::string& uuidToLoad) :
       _loadUuid(uuidToLoad),
@@ -321,6 +322,7 @@ namespace fr::RequirementsManager {
       }
 
       _graphLoaded = true;
+      done(_loadUuid);
     }
 
     Node::PtrType getNode() {
