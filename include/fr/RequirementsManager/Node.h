@@ -231,10 +231,11 @@ namespace fr::RequirementsManager {
 
     template <class Archive>
     void save(Archive& ar) const {
-      std::lock_guard<std::mutex> lock(nodeMutex);
-      ar(cereal::make_nvp("id", boost::uuids::to_string(id)));
+      std::lock_guard<std::mutex> lock(nodeMutex);      
+      ar(cereal::make_nvp("id", boost::uuids::to_string(id)));      
       ar(cereal::make_nvp("upList", up));
       ar(cereal::make_nvp("downList", down));
+      ar(cereal::make_nvp("initted", initted));
     }
 
     template <class Archive>
@@ -246,6 +247,7 @@ namespace fr::RequirementsManager {
       id = generator(uuid_str);
       ar(up);
       ar(down);
+      ar(initted);
     }
 
   };

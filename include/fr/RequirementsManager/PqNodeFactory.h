@@ -231,6 +231,9 @@ namespace fr::RequirementsManager {
       Node::PtrType ret;
       if (!nodeType.empty()) {
         ret = _allocator.get(nodeType, uuid);
+        // Make sure initted gets set true or nodes may get
+        // re-initted when they shouldn't be
+        ret->initted = true;
       }
       return ret;
     }
