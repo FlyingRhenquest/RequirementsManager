@@ -260,6 +260,9 @@ namespace fr::RequirementsManager {
       // Forward worker loaded signal through the factory
       worker->loaded.connect([&](const std::string& id, Node::PtrType n) {
         this->loaded(id, n);
+        // graphLoaded will signal done when all the worker nodes are
+        // finished processing
+        this->graphLoaded();
       });
       
       this->down.push_back(worker);
@@ -323,9 +326,6 @@ namespace fr::RequirementsManager {
       if (_startingNode) {
         process(_startingNode);
       }
-
-      _graphLoaded = true;
-      done(_loadUuid);
     }
 
     Node::PtrType getNode() {
@@ -333,6 +333,21 @@ namespace fr::RequirementsManager {
     }
 
     bool graphLoaded() {
+      // We need to check all the workers to see if they're done
+      if (!_graphLoaded) {
+        // This will go false again if any workernodes are still working
+        _graphLoaded = true;
+        for (auto node : this->down) {
+          auto workerNode = dynamic_pointer_cast<PqNodeLoader<WorkerType>>(node);
+          if (workerNode) {
+            _graphLoaded &= workerNode->complete();            
+          }
+        }
+        if (_graphLoaded) {
+          // Signal done if we're still true here
+          done(_loadUuid);
+        }
+      }
       return _graphLoaded;
     }
     
