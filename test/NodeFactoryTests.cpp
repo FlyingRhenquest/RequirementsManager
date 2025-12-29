@@ -14,6 +14,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
 #include <fr/RequirementsManager.h>
 #include <fr/RequirementsManager/NodeConnector.h>
 #include <fr/RequirementsManager/PqDatabase.h>
@@ -21,6 +22,7 @@
 #include <gtest/gtest.h>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 using namespace fr::RequirementsManager;
 /**
@@ -67,10 +69,12 @@ TEST(NodeFactoryTest, SpecificAllocations) {
 }
 
 TEST(NodeFactoryTest, LoadAGraph) {
+  auto graph = std::make_shared<GraphNode>();
+  graph->setTitle("Organization Graph");
   auto org = std::make_shared<Organization>();
-  ;
-  org->setName("Global Consolidated Software Engineering, Inc.");
+    org->setName("Global Consolidated Software Engineering, Inc.");
   org->lock();
+  connectNodes(graph, org);
   auto project = std::make_shared<Project>();
   project->setName("Engineer some software");
   connectNodes(org, project);
@@ -88,7 +92,7 @@ TEST(NodeFactoryTest, LoadAGraph) {
   // threadpool
   auto threadpool = std::make_shared<ThreadPool<WorkerThread>>();
   threadpool->startThreads(4);
-  auto saver = std::make_shared<SaveNodesNode<WorkerThread>>(req);
+  auto saver = std::make_shared<SaveNodesNode<WorkerThread>>(graph);
 
   std::mutex waitMutex;
   std::condition_variable waitCv;
@@ -105,11 +109,10 @@ TEST(NodeFactoryTest, LoadAGraph) {
   // Will only wake up once treeSaveComplete returns true.
   waitCv.wait(lock, [&saver]() { return saver->treeSaveComplete(); });
   // OK! Let's load it!
-  auto factory = std::make_shared<PqNodeFactory<WorkerThread>>(org->idString());
+  auto factory = std::make_shared<PqNodeFactory<WorkerThread>>(graph->idString());
   std::string nodeLoaded;
 
-  factory->loaded.connect([&waitCv, &nodeLoaded](const std::string &id,
-                                                 Node::PtrType /* NotUsed */) {
+  factory->done.connect([&waitCv, &nodeLoaded](const std::string &id) {
     nodeLoaded = id;
     waitCv.notify_one();
   });
@@ -120,10 +123,27 @@ TEST(NodeFactoryTest, LoadAGraph) {
   waitCv.wait(lock, [&nodeLoaded]() { return !nodeLoaded.empty(); });
   threadpool->shutdown();
   threadpool->join();
-  auto restoredOrg = factory->getNode();
+  auto restoredGraph = factory->getNode();
 
-  // Make sure it's not null
-  ASSERT_TRUE(restoredOrg);
-  ASSERT_EQ(restoredOrg->idString(), org->idString());
-  ASSERT_EQ(restoredOrg->down.size(), org->down.size());
+  ASSERT_TRUE(restoredGraph);
+
+  // Gather ID strings from original graph and restored one
+  std::vector<std::string> origStrings;
+  std::vector<std::string> restoredStrings;
+
+  graph->traverse([&origStrings](Node::PtrType node) {
+    origStrings.push_back(node->idString());
+  });
+
+  restoredGraph->traverse([&restoredStrings](Node::PtrType node) {
+    restoredStrings.push_back(node->idString());
+  });
+
+  ASSERT_EQ(origStrings.size(), restoredStrings.size());
+  // Make sure ID strings are in the same order
+  std::sort(origStrings.begin(), origStrings.end());
+  std::sort(restoredStrings.begin(), restoredStrings.end());
+  for (int i = 0; i < origStrings.size(); ++i) {
+    ASSERT_EQ(origStrings[i], restoredStrings[i]);
+  }
 }
