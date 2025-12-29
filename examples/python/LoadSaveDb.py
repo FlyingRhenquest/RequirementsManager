@@ -7,8 +7,16 @@ import time
 # Nodes don't currently have rules about how they connect
 # together.
 
+# The GUI looks for graph nodes in its loading code,
+# so let's make sure we set this org up with one
+
+graph = FRRequirements.GraphNode()
+graph.setTitle("Organization Graph")
+
 org = FRRequirements.Organization()
 org.setName("Global Consolidated Software Engineering, Inc.")
+
+FRRequirements.connectNodes(graph, org)
 
 proj = FRRequirements.Project()
 proj.setName("Engineer some software")

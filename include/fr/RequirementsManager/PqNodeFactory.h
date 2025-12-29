@@ -198,6 +198,7 @@ namespace fr::RequirementsManager {
     // Initial UUID to load
     std::string _loadUuid;
 
+    std::mutex _alreadyLoadedMutex;
     // Map used to keep track of which UUIDs we've already loaded
     std::unordered_map<std::string, Node::PtrType> _alreadyLoaded;
 
@@ -259,14 +260,20 @@ namespace fr::RequirementsManager {
 
       // Forward worker loaded signal through the factory
       worker->loaded.connect([&](const std::string& id, Node::PtrType n) {
-        this->loaded(id, n);
-        // graphLoaded will signal done when all the worker nodes are
-        // finished processing
-        this->graphLoaded();
+        this->loaded(id, n);        
+        // For done tracking -- workers will get enqueued at the end
+        // of processing after the whole node skeleton has been set up.
+        // At that point, _alreadyLoaded contains all the nodes that need
+        // to be loaded, so we can just erase them as we load them and
+        // when _alreadyLoaded.size() hits 0, we're done.
+        std::lock_guard<std::mutex> lock(_alreadyLoadedMutex);
+        _alreadyLoaded.erase(id);
+        if (graphLoaded()) {
+          done(_loadUuid);
+        }
       });
       
       this->down.push_back(worker);
-      owner->enqueue(worker);
       // Iterate through the up/down lists from node_association, load
       // and assemble the associated nodes.
       std::string cmd("select association,type from node_associations where id = $1;");
@@ -274,6 +281,8 @@ namespace fr::RequirementsManager {
         node->idString()
       };
       pqxx::result res = _transaction.exec(cmd,p);
+      // Build out the skeleton of the nodes -- this sets up the
+      // structure but not the node data
       for (auto const &row : res) {
         auto association = row[0].as<std::string>();
         auto assocType = row[1].as<std::string>();
@@ -326,6 +335,12 @@ namespace fr::RequirementsManager {
       if (_startingNode) {
         process(_startingNode);
       }
+      for (auto worker : this->down) {
+        auto workerNode = std::dynamic_pointer_cast<PqNodeLoader<WorkerType>>(worker);
+        if (workerNode) {
+          this->getOwner()->enqueue(workerNode);
+        }
+      }
     }
 
     Node::PtrType getNode() {
@@ -335,18 +350,9 @@ namespace fr::RequirementsManager {
     bool graphLoaded() {
       // We need to check all the workers to see if they're done
       if (!_graphLoaded) {
-        // This will go false again if any workernodes are still working
-        _graphLoaded = true;
-        for (auto node : this->down) {
-          auto workerNode = dynamic_pointer_cast<PqNodeLoader<WorkerType>>(node);
-          if (workerNode) {
-            _graphLoaded &= workerNode->complete();            
-          }
-        }
-        if (_graphLoaded) {
-          // Signal done if we're still true here
-          done(_loadUuid);
-        }
+        if (0 == _alreadyLoaded.size()) {
+          _graphLoaded = true;
+        }        
       }
       return _graphLoaded;
     }
