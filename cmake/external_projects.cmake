@@ -35,7 +35,7 @@ if (NOT Boost_FOUND)
   
   ExternalProject_Add(BoostExternal
     GIT_REPOSITORY "https://github.com/boostorg/boost.git"
-    GIT_SUBMODULES "libs/uuid" "libs/config" "libs/system" "libs/headers" "libs/type_traits" "libs/throw_exception" "libs/assert" "libs/static_assert" "tools/build" "tools/boost_install"
+    GIT_SUBMODULES "libs/uuid" "libs/config" "libs/system" "libs/headers" "libs/type_traits" "libs/throw_exception" "libs/assert" "libs/static_assert" "tools/build" "tools/boost_install" "libs/signals2"
     GIT_SUBMODULES_RECURSE FALSE
     PREFIX "${BOOST_EXTERNAL_PREFIX}"
     BUILD_IN_SOURCE TRUE

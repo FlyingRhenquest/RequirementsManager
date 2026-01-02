@@ -183,5 +183,8 @@ else()
   add_dependencies(RequirementsManager BoostExternal CerealExternal FRTypesExternal)
 
   target_link_options(FRRequirementsManagerModule PRIVATE "-sSINGLE_FILE=1" "-sMODULARIZE" "-sEXPORT_NAME=FRRequirementsManager" "--bind")
+  if (NOT PROJECT_IS_TOP_LEVEL)
+    set(EXTERNAL_INCLUDE_DIRS "${EXTERNAL_INCLUDE_DIRS}" PARENT_SCOPE)
+  endif()
 
 endif()
