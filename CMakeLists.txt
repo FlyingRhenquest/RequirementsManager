@@ -67,7 +67,6 @@ set(DATABASE_HEADER_LIST
   "${HEADER_DIR}/PqDatabase.h"
   "${HEADER_DIR}/PqDatabaseSpecific.h"
   "${HEADER_DIR}/PqNodeFactory.h"
-  "${HEADER_DIR}/GraphNodeLocator.h"
 )
 
 set(LIBRARY_SOURCE
@@ -180,7 +179,8 @@ else()
     ${CMAKE_CURRENT_SOURCE_DIR}/src/EmscriptenApi.cpp
   )
 
-  target_link_libraries(FRRequirementsManagerModule PRIVATE RequirementsManager)
+  target_link_libraries(FRRequirementsManagerModule PUBLIC RequirementsManager)
+  add_dependencies(RequirementsManager BoostExternal CerealExternal FRTypesExternal)
 
   target_link_options(FRRequirementsManagerModule PRIVATE "-sSINGLE_FILE=1" "-sMODULARIZE" "-sEXPORT_NAME=FRRequirementsManager" "--bind")
 
