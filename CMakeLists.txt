@@ -67,6 +67,7 @@ set(DATABASE_HEADER_LIST
   "${HEADER_DIR}/PqDatabase.h"
   "${HEADER_DIR}/PqDatabaseSpecific.h"
   "${HEADER_DIR}/PqNodeFactory.h"
+  "${HEADER_DIR}/GraphNodeLocator.h"
 )
 
 set(LIBRARY_SOURCE
