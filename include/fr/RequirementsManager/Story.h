@@ -94,3 +94,5 @@ namespace fr::RequirementsManager {
   };
   
 }
+
+CEREAL_REGISTER_TYPE(fr::RequirementsManager::Story);
