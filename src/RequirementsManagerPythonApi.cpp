@@ -17,6 +17,7 @@
 #include <fr/RequirementsManager.h>
 #include <fr/RequirementsManager/TaskNode.h>
 #include <fr/RequirementsManager/ThreadPool.h>
+#include <fr/RequirementsManager/GraphServer.h>
 #include <memory>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/bind_vector.h>
@@ -95,7 +96,7 @@ NB_MODULE(FRRequirements, m) {
             "Tasknode is a pure virtual class -- do not create one directly in "
             "Python (Are you looking for SaveNodesNode or PqNodeFactory?");
       }));
-
+  
   // Threadpool (Currently for database saving and loading)
   nanobind::class_<ThreadPool<WorkerThread>>(m, "ThreadPool")
       .def(nanobind::new_(
@@ -119,12 +120,25 @@ NB_MODULE(FRRequirements, m) {
            "Join threadpool. Call after shutdown. This waits for the "
            "ThreadPool to complete its work and shut down completely.");
 
+#ifdef BUILD_REST_SERVER
+
+  nanobind::class_<GraphServer<WorkerThread>>(m, "GraphServer")
+    .def(nanobind::new_([](int port) {
+      return std::make_shared<GraphServer<WorkerThread>>(port);
+    }))
+    .def("start", &GraphServer<WorkerThread>::start,
+         "Start the server. Pass in number of threads to start for the "
+         "endpoint and number of threads to start for the database threadpool")
+    .def("shutdown", &GraphServer<WorkerThread>::shutdown,
+         "Shut down the server");
+  
+#endif
+
 #ifdef INCLUDE_PQXX_SUPPORT
 
   // SaveNodesNode saves nodes in the Postgres database
 
-  nanobind::class_<SaveNodesNode<WorkerThread>, TaskNode<WorkerThread>>(
-      m, "SaveNodesNode")
+  nanobind::class_<SaveNodesNode<WorkerThread>, TaskNode<WorkerThread>>(m, "SaveNodesNode")
       .def(nanobind::new_([](Node::PtrType startingNode) {
         return std::make_shared<SaveNodesNode<WorkerThread>>(startingNode,
                                                              false);
@@ -137,8 +151,7 @@ NB_MODULE(FRRequirements, m) {
 
   // PqNodeFactory loads nodes from a Postges database
 
-  nanobind::class_<PqNodeFactory<WorkerThread>, TaskNode<WorkerThread>>(
-      m, "PqNodeFactory")
+  nanobind::class_<PqNodeFactory<WorkerThread>, TaskNode<WorkerThread>>(m, "PqNodeFactory")
       .def(nanobind::new_([](const std::string &uuid) {
         return std::make_shared<PqNodeFactory<WorkerThread>>(uuid);
       }))

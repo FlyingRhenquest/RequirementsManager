@@ -18,6 +18,7 @@ set(USING_CEREAL_EXTERNAL FALSE)
 include(ExternalProject)
 
 set (EXTERNAL_INCLUDE_DIRS "")
+set (PYTHON_LINK_LIBRARIES "")
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/external_projects.cmake")
 
@@ -32,6 +33,10 @@ option(BUILD_TESTS "Build unit tests" OFF)
 # ferret out of an external project to use.
 #
 option(BUILD_PYTHON_API "Build python API" ON)
+
+# Build the REST server, currently only in the
+# python API.
+option(BUILD_REST_SERVER "Build REST server into the Python API" ON)
 
 #
 # The pqxx support requires libpqxx, which you can
@@ -81,6 +86,15 @@ if (NOT EMSCRIPTEN)
   find_package(nanobind CONFIG REQUIRED)
   find_package(libpqxx CONFIG QUIET)
 
+  if (BUILD_REST_SERVER)
+    # If this isn't found you can install Pistache or disable
+    # BUILD_REST_SERVER in your build
+    pkg_check_modules(Pistache REQUIRED IMPORTED_TARGET libpistache)
+    list(APPEND PYTHON_LINK_LIBRARIES PkgConfig::Pistache)
+  endif()
+
+  # Option list for python API
+  set(PYTHON_API_OPTION_LIST "")
   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/external_projects_native.cmake")
   
   message(STATUS "Building C++ native library and python bindings")
@@ -119,7 +133,7 @@ if (NOT EMSCRIPTEN)
       ${EXTERNAL_INCLUDE_DIRS}
     )
 
-    set(PYTHON_LINK_LIBRARIES "FR::RequirementsManager")
+    list(APPEND PYTHON_LINK_LIBRARIES "FR::RequirementsManager")
     
     if (BUILD_PQXX_SUPPORT)
       list(APPEND PYTHON_LINK_LIBRARIES "libpqxx::pqxx")
@@ -128,9 +142,15 @@ if (NOT EMSCRIPTEN)
     target_link_libraries(FRRequirements PUBLIC
       ${PYTHON_LINK_LIBRARIES}
     )
+    
+    if (BUILD_REST_SERVER)
+      list(APPEND PYTHON_API_OPTION_LIST -DBUILD_REST_SERVER)      
+    endif()
     if (BUILD_PQXX_SUPPORT)
-      target_compile_options(FRRequirements PUBLIC -DINCLUDE_PQXX_SUPPORT)
-    endif()    
+      list(APPEND PYTHON_API_OPTION_LIST -DINCLUDE_PQXX_SUPPORT)
+    endif()
+    
+    target_compile_options(FRRequirements PUBLIC ${PYTHON_API_OPTION_LIST})
     
   endif()
 
