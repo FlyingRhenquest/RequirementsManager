@@ -185,6 +185,12 @@ namespace fr::RequirementsManager {
       
       auto graphsRoute = [&](const Pistache::Rest::Request &request,
                              Pistache::Http::ResponseWriter response) {
+        // Add CORS headers to allow emscripten fetch to access this data
+        // Replace "*" with your domain if you're running this in a wider
+        // environment.
+        response.headers().add<Pistache::Http::Header::AccessControlAllowOrigin>("*");
+        response.headers().add<Pistache::Http::Header::AccessControlAllowMethods>("GET, POST, OPTIONS");
+        response.headers().add<Pistache::Http::Header::AccessControlAllowHeaders>("Content-Type, Authorization");
         std::vector<std::shared_ptr<ServerLocatorNode>> nodes = graphs(request);
         std::stringstream stream;
         {
@@ -202,6 +208,9 @@ namespace fr::RequirementsManager {
           error(response, "Empty/No ID specified");
         } else {
           auto node = graph(id);
+          response.headers().add<Pistache::Http::Header::AccessControlAllowOrigin>("*");
+          response.headers().add<Pistache::Http::Header::AccessControlAllowMethods>("GET, POST, OPTIONS");
+          response.headers().add<Pistache::Http::Header::AccessControlAllowHeaders>("Content-Type, Authorization");
           if (!node) {
             error(response, "ID not found", Pistache::Http::Code::Not_Found);
           } else {                                        
@@ -213,6 +222,15 @@ namespace fr::RequirementsManager {
             response.send(Pistache::Http::Code::Ok, stream.str());
           }
         }
+        return Pistache::Rest::Route::Result::Ok;
+      };
+
+      auto optionsRoute = [&](const Pistache::Rest::Request &request,
+                              Pistache::Http::ResponseWriter response) {
+        response.headers().add<Pistache::Http::Header::AccessControlAllowOrigin>("*");
+        response.headers().add<Pistache::Http::Header::AccessControlAllowMethods>("GET, POST, OPTIONS");
+        response.headers().add<Pistache::Http::Header::AccessControlAllowHeaders>("Content-Type, Authorization");
+        response.send(Pistache::Http::Code::No_Content);
         return Pistache::Rest::Route::Result::Ok;
       };
 
@@ -233,6 +251,11 @@ namespace fr::RequirementsManager {
         // don't trust SSL to save you, either. It's still
         // easy to implement a MITM attack through SSL.
         auto node = std::make_shared<Node>();
+
+        response.headers().add<Pistache::Http::Header::AccessControlAllowOrigin>("*");
+        response.headers().add<Pistache::Http::Header::AccessControlAllowMethods>("GET, POST, OPTIONS");
+        response.headers().add<Pistache::Http::Header::AccessControlAllowHeaders>("Content-Type, Authorization");
+        
         std::stringstream stream(body);
         {
           cereal::JSONInputArchive archive(stream);
@@ -249,7 +272,8 @@ namespace fr::RequirementsManager {
       Pistache::Rest::Routes::Get(_router, "/graph/:id", graphRoute);
 
       Pistache::Rest::Routes::Post(_router, "graph/:id", postRoute);
-                               
+
+      Pistache::Rest::Routes::Options(_router, "/*", optionsRoute);
     }
 
   public:

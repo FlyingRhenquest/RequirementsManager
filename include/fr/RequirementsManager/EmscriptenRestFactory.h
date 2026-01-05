@@ -18,8 +18,10 @@
 
 #include <emscripten/fetch.h>
 #include <format>
+#include <fr/RequirementsManager.h>
 #include <fr/RequirementsManager/RestFactoryApi.h>
 #include <iostream>
+#include <stdexcept>
 #include <sstream>
 #include <string>
 #include <memory>
@@ -102,15 +104,28 @@ namespace fr::RequirementsManager {
 
   class EmscriptenGraphNodeFactory : public GraphNodeFactory {
     static void success(emscripten_fetch_t *ctx) {
+      std::cout << "Fetch success" << std::endl;
       std::string data(ctx->data, ctx->numBytes);
-      std::shared_ptr<GraphNode> node;
-      std::stringstream dataStream(data);
-      {
-        cereal::JSONInputArchive archive(dataStream);
-        archive(node);
+      std::shared_ptr<Node> node;
+      std::cout << "Data is: " << data << std::endl;
+      std::cout << "Deserializing data" << std::endl;
+      try {
+        std::cout << "Creating data stream" << std::endl;
+        std::stringstream dataStream(data);
+        std::cout << "Creating archive" << std::endl;
+        {
+          cereal::JSONInputArchive archive(dataStream);
+          std::cout << "Calling archive" << std::endl;
+          archive(node);
+          std::cout << "Archive complete" << std::endl;
+        }
+      } catch (cereal::Exception& e) {
+        std::cout << "Error: " << e.what() << std::endl;
       }
+      std::cout << "Signaling available" << std::endl;
       EmscriptenGraphNodeFactory::instance().available(node);
       emscripten_fetch_close(ctx);
+      std::cout << "Fetch complete" << std::endl;
     }
 
     static void fail(emscripten_fetch_t *ctx) {
@@ -128,6 +143,7 @@ namespace fr::RequirementsManager {
 
     void fetch(const std::string& url) {
       emscripten_fetch_attr_t attr;
+      std::cout << "Fetching graph from " << url << std::endl;
       emscripten_fetch_attr_init(&attr);
       strcpy(attr.requestMethod, "GET");
       attr.onsuccess = EmscriptenGraphNodeFactory::success;

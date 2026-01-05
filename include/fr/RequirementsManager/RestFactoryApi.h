@@ -55,7 +55,7 @@ namespace fr::RequirementsManager {
   public:    
     // Available signal is called whenever a node has been deserialized and
     // is now available.
-    boost::signals2::signal<void(std::shared_ptr<GraphNode>)> available;
+    boost::signals2::signal<void(std::shared_ptr<Node>)> available;
     // Error is called with a string if an error occurs
     boost::signals2::signal<void(const std::string&)> error;
 
