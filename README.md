@@ -24,6 +24,11 @@ node tables. I will document this in more detail shortly.
  * Support for writing graphs to a PostgreSQL database
  * Support for reading graphs from a PostgreSQL database
  * Python API for loading and saving nodes.
+ * A VERY basic Pistache REST service for loading and saving
+   nodes. The REST service can currently be started via
+   the Python API, but building an executable launcher
+   for it will be trivial.
+ * Emscripten factory code to load nodes through REST.
  
  Nodes are just data. They can be fit together in any way, but there
  is almost nothing right now that actually does so. You can just stick
@@ -39,7 +44,10 @@ node tables. I will document this in more detail shortly.
  an environment that has access to it. I'm planning to set up
  the emscripten side to be able to query objects from a REST server.
  
- UI is next!
+ UI is done through my [ImguiWidgets](https://github.com/FlyingRhenquest/ImguiWidgets) repo.
+ It supports native and Emscripten builds, so you can run the UI locally
+ or in your browser. Front end is not my forte, so it kinda looks
+ like ass. It does work though!
 
 ## Goals:
 
@@ -51,7 +59,10 @@ node tables. I will document this in more detail shortly.
  * Have some things like Requirements be Commitable, which prevents them
    from changing further, while also allowing for a mechanism by which
    they *can* be changed, but the changes can be traced all the way back
-   to the original document.
+   to the original document. (TODO: I plan to revisit this functionality
+   and may revert everything back to just nodes -- the whole commitable
+   node thing is awkward and feels like YAGNI. If I do actually need it
+   I think a different approach is in order.)
  * System must be extremely flexible but also offer useful functionality
    right out of the box without having to do a huge amount of customization.
  * Must be able to store entities in this system in a SQL database.
@@ -81,16 +92,15 @@ but I'd like to have the system cal init for you when it makes sense
 to do so. I'm just not sure that I want to do that every time an
 object is created, at the moment.
 
-Since this is basically all just nodes and we're planning to do
-a lot of stuff in Python or via REST (and eventually something like
-React,) this code smells a lot more like Java than a lot of the C++
-I wrote. So if you're wondering why all the getters and setters
-are in there, that's why. It's very easy to just create and assemble
-nodes dynamically in Python, while attempting to do so in C++
-would require compiling a program. I still want the underlying 
-mechanisms to be fast and accessible to external sources from the
-same memory space, so it has to be in a language like C++. And I
-happen to *like* writing C++ code.
+Since this is basically all just nodes and we're planning to do a lot
+of stuff in Python or via REST, this code smells a lot more like Java
+than a lot of the C++ I wrote. So if you're wondering why all the
+getters and setters are in there, that's why. It's very easy to just
+create and assemble nodes dynamically in Python, while attempting to
+do so in C++ would require compiling a program. I still want the
+underlying mechanisms to be fast and accessible to external sources
+from the same memory space, so it has to be in a language like
+C++. And I happen to *like* writing C++ code.
 
 ## Thread Safety
 
@@ -99,29 +109,21 @@ needs it.
 
 ## Todos
 
- * Do an example project with this requirements manager and export it to
-   JSON that anyone can just import so we can all manage changes to the
-   requirements manager from the requirements manager.
+ * REST query for native using libcurl or something. Maybe Pistache
+   http client.
+ * Docker images for the entire system so you can just run this in
+   docker and play with it.
  * Logic/Rules for how nodes fit together. Right now you can just throw
    any node into any other node.
  * Node has a "changed" flag, set that for changes that need to be saved
    and figure out what sets it to false -- is it serializing to json? Saving
    in a SQL database? Other?
- * Figure out a way to export one chunk of the project -- one requirement,
-   all changed things, something like that. Maybe just set node
-   relationships with down nodes only for things that should not
-   be loaded as part of a graph. Like an organization could have just
-   down-nodes to everything and if nothing points back to it,
-   you won't load everything the organization owns when you load
-   your project.
  * Need some nodes for tracking git commit tags. Ideally I could
    grab tags in a pre-commit hook, generate a node with that information
    and write it into the database.
 
 ## Additional notes
 
- * All these nodes together make a graph. I don't think I need an explicit
-   graph object to store them, at least not yet.
  * I can really store any tree-ish data this way. Json, XML, documents
    (DOM is really all just nodes.) For being so simple, nodes are pretty
    freaking useful.
@@ -161,4 +163,6 @@ needs it.
    This lets you focus on your logic without having to worry too
    much about what happens if the object does happen to be committed.
  * to_json will "just work" with most nodes, as it leverages the
-   cereal archiver to generate the JSON.
+   cereal archiver to generate the JSON. You can build an entire
+   graph, call to_json on any of its nodes and the entire graph
+   will be serialized.
