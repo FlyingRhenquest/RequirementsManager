@@ -57,9 +57,12 @@ namespace fr::RequirementsManager {
       // Deserialize data to a vector of shared pointers
       std::vector<std::shared_ptr<ServerLocatorNode>> nodes;
       std::stringstream dataStream(data);
-      {
+      try {
         cereal::JSONInputArchive archive(dataStream);
         archive(nodes);
+      } catch (cereal::Exception &e) {
+        std::string err = std::format("Cereal deserialization error: {}", e.what());
+        EmscriptenServerLocatorFactory::instance().error(err);
       }
       // Signal new nodes available
       for (auto node : nodes) {        
@@ -104,28 +107,22 @@ namespace fr::RequirementsManager {
 
   class EmscriptenGraphNodeFactory : public GraphNodeFactory {
     static void success(emscripten_fetch_t *ctx) {
-      std::cout << "Fetch success" << std::endl;
       std::string data(ctx->data, ctx->numBytes);
       std::shared_ptr<Node> node;
-      std::cout << "Data is: " << data << std::endl;
-      std::cout << "Deserializing data" << std::endl;
       try {
-        std::cout << "Creating data stream" << std::endl;
         std::stringstream dataStream(data);
-        std::cout << "Creating archive" << std::endl;
         {
           cereal::JSONInputArchive archive(dataStream);
-          std::cout << "Calling archive" << std::endl;
           archive(node);
-          std::cout << "Archive complete" << std::endl;
         }
       } catch (cereal::Exception& e) {
-        std::cout << "Error: " << e.what() << std::endl;
+        std::string msg = std::format("Deserialization Error: {}", e.what());
+        EmscriptenGraphNodeFactory::instance().error(msg);
       }
-      std::cout << "Signaling available" << std::endl;
-      EmscriptenGraphNodeFactory::instance().available(node);
+      if (node) {
+        EmscriptenGraphNodeFactory::instance().available(node);
+      }
       emscripten_fetch_close(ctx);
-      std::cout << "Fetch complete" << std::endl;
     }
 
     static void fail(emscripten_fetch_t *ctx) {
@@ -143,7 +140,6 @@ namespace fr::RequirementsManager {
 
     void fetch(const std::string& url) {
       emscripten_fetch_attr_t attr;
-      std::cout << "Fetching graph from " << url << std::endl;
       emscripten_fetch_attr_init(&attr);
       strcpy(attr.requestMethod, "GET");
       attr.onsuccess = EmscriptenGraphNodeFactory::success;

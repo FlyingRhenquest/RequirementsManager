@@ -29,6 +29,7 @@ node tables. I will document this in more detail shortly.
    the Python API, but building an executable launcher
    for it will be trivial.
  * Emscripten factory code to load nodes through REST.
+ * Native factory code to load nodes through REST.
  
  Nodes are just data. They can be fit together in any way, but there
  is almost nothing right now that actually does so. You can just stick
@@ -41,8 +42,7 @@ node tables. I will document this in more detail shortly.
  PostgreSQL support is nominally ready. It has not been thoroughly tested.
  Python is nominally up to date with the C++ API. Emscripten is not
  getting SQL database support since it's not supposed to exist in
- an environment that has access to it. I'm planning to set up
- the emscripten side to be able to query objects from a REST server.
+ an environment that has access to it. 
  
  UI is done through my [ImguiWidgets](https://github.com/FlyingRhenquest/ImguiWidgets) repo.
  It supports native and Emscripten builds, so you can run the UI locally
@@ -92,7 +92,7 @@ but I'd like to have the system cal init for you when it makes sense
 to do so. I'm just not sure that I want to do that every time an
 object is created, at the moment.
 
-Since this is basically all just nodes and we're planning to do a lot
+Since this is basically all just nodes and we're doing a lot
 of stuff in Python or via REST, this code smells a lot more like Java
 than a lot of the C++ I wrote. So if you're wondering why all the
 getters and setters are in there, that's why. It's very easy to just
@@ -109,8 +109,6 @@ needs it.
 
 ## Todos
 
- * REST query for native using libcurl or something. Maybe Pistache
-   http client.
  * Docker images for the entire system so you can just run this in
    docker and play with it.
  * Logic/Rules for how nodes fit together. Right now you can just throw
