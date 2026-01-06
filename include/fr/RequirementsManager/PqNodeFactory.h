@@ -17,7 +17,6 @@
 #pragma once
 
 #include <atomic>
-#include <boost/signals2.hpp>
 #include <cstring>
 #include <format>
 #include <fr/RequirementsManager.h>
@@ -27,6 +26,7 @@
 #include <fr/RequirementsManager/ThreadPool.h>
 #include <fr/types/Concepts.h>
 #include <fr/types/Typelist.h>
+#include <fteng/signals.hpp>
 #include <pqxx/pqxx>
 #include <string>
 #include <unordered_map>
@@ -152,7 +152,7 @@ namespace fr::RequirementsManager {
     using PtrType = std::shared_ptr<PqNodeLoader<WorkerThreadType>>;
     using Parent = TaskNode<WorkerThreadType>;
 
-    boost::signals2::signal<void(const std::string&, Node::PtrType)> loaded;
+    fteng::signal<void(const std::string&, Node::PtrType)> loaded;
 
     PqNodeLoader(Node::PtrType toLoad) : _transaction(_connection),
                                          _loadComplete(false),
@@ -305,8 +305,8 @@ namespace fr::RequirementsManager {
 
   public:
 
-    boost::signals2::signal<void(const std::string&, Node::PtrType)> loaded;
-    boost::signals2::signal<void(const std::string&)> done;
+    fteng::signal<void(const std::string&, Node::PtrType)> loaded;
+    fteng::signal<void(const std::string&)> done;
     
     PqNodeFactory(const std::string& uuidToLoad) :
       _loadUuid(uuidToLoad),

@@ -114,11 +114,13 @@ namespace fr::RequirementsManager::database {
     }
 
     void remove(Node::PtrType node, pqxx::work& transaction) {
+      // Delete from specific table where this object lives
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
       };
       transaction.exec(cmd, p);
+      // Delete from node and node_associations for this object
     }
     
   };

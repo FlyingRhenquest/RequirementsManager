@@ -19,7 +19,7 @@
 #include <fr/RequirementsManager/Node.h>
 #include <fr/RequirementsManager/GraphNode.h>
 #include <fr/RequirementsManager/ServerLocatorNode.h>
-#include <boost/signals2.hpp>
+#include <fteng/signals.hpp>
 #include <memory>
 
 // Factory APIs for various nodes that can be served over REST.
@@ -39,11 +39,11 @@ namespace fr::RequirementsManager {
   public:
     // Available signal is called whenever a node has been deserialized and
     // is now available. You subscribe to this to get nodes
-    boost::signals2::signal<void(std::shared_ptr<ServerLocatorNode>)> available;
+    fteng::signal<void(std::shared_ptr<ServerLocatorNode>)> available;
     // Error is called with string (Maybe even a populated one!) if an
     // error occurs. If this happens, this factory might be broken
     // and never work.
-    boost::signals2::signal<void(const std::string &)> error;
+    fteng::signal<void(const std::string &)> error;
 
     ServerLocatorNodeFactory() {};
     virtual ~ServerLocatorNodeFactory() {};
@@ -55,9 +55,9 @@ namespace fr::RequirementsManager {
   public:    
     // Available signal is called whenever a node has been deserialized and
     // is now available.
-    boost::signals2::signal<void(std::shared_ptr<Node>)> available;
+    fteng::signal<void(std::shared_ptr<Node>)> available;
     // Error is called with a string if an error occurs
-    boost::signals2::signal<void(const std::string&)> error;
+    fteng::signal<void(const std::string&)> error;
 
     GraphNodeFactory() {}
     virtual ~GraphNodeFactory() {}

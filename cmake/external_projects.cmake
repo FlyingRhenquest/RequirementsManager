@@ -36,9 +36,6 @@ if (NOT Boost_FOUND)
   ExternalProject_Add(BoostExternal
     GIT_REPOSITORY "https://github.com/boostorg/boost.git"
     GIT_SUBMODULES "libs/uuid" "libs/config" "libs/system" "libs/headers" "libs/type_traits" "libs/throw_exception" "libs/assert" "libs/static_assert" "tools/build" "tools/boost_install"
-    # Everything after this point is needed by signals2
-    # TODO: Find a replacement for signals2
-    "libs/signals2" "libs/smart_ptr" "libs/core" "libs/move" "libs/optional" "libs/function" "libs/bind" "libs/mpl" "libs/preprocessor" "libs/iterator" "libs/mp11" "libs/variant" "libs/detail" "libs/type_index" "libs/container_hash" "libs/utility" "libs/integer" "libs/parameter"
     GIT_SUBMODULES_RECURSE FALSE
     PREFIX "${BOOST_EXTERNAL_PREFIX}"
     BUILD_IN_SOURCE TRUE

@@ -18,7 +18,6 @@
 #pragma once
 
 #include <fr/RequirementsManager/AllNodeTypes.h>
-#include <boost/signals2.hpp>
 #include <format>
 #include <fr/RequirementsManager.h>
 #include <fr/RequirementsManager/PqDatabaseSpecific.h>
@@ -27,8 +26,8 @@
 #include <fr/RequirementsManager/ThreadPool.h>
 #include <fr/types/Concepts.h>
 #include <fr/types/Typelist.h>
-#include <mutex>
 #include <pqxx/pqxx>
+#include <fteng/signals.hpp>
 #include <string>
 #include <thread>
 #include <unordered_map>
@@ -95,11 +94,6 @@ namespace fr::RequirementsManager {
 
     Node::PtrType _startingNode;
 
-    /**
-     * Mutex to control access to complete notificaiton
-     */
-    std::mutex _completeMutex;
-    
     /**
      * Try to save specific data in a node shared ptr using the
      * SpecificSaveableTypes list I defined above. This will
@@ -238,7 +232,6 @@ namespace fr::RequirementsManager {
         // Subscribe to saver complete signal and forward it back to the parent (this)
         // object.
         saver->complete.connect([&](const std::string& id, Node::PtrType n) {
-          std::lock_guard<std::mutex> lock(_completeMutex);
           std::cout << "Completed " << n->idString() << std::endl;
           this->complete(id, n);
         });
@@ -288,14 +281,14 @@ namespace fr::RequirementsManager {
     
   public:
     /**
-     * Complete is a signals2 callback you can subscribe to for save notificaitons.
+     * Complete is a signals callback you can subscribe to for save notificaitons.
      * If you're saving an entire tree of nodes, the SaveNodesNode you create
      * will create additional ones to handle the other nodes in the tree and place
      * them in the down list of the SaveNodesNode you created. The SaveNodesNode
      * you created will register with and forward this signal from all the other
      * nodes it creates, so you can operate on individual nodes as they are saved.
      */
-    boost::signals2::signal<void(const std::string&, Node::PtrType)> complete;
+    fteng::signal<void(const std::string&, Node::PtrType)> complete;
 
     SaveNodesNode(Node::PtrType startingNode,
                   bool saveThisNodeOnly = false) :
@@ -349,9 +342,8 @@ namespace fr::RequirementsManager {
       
       _transaction.commit();
       _saveComplete = true;
-      std::lock_guard<std::mutex> lock(_completeMutex);
       std::cout << "Completed " << _startingNode->idString() << std::endl;
-      complete(_startingNode->idString(), _startingNode);
+      this->complete(_startingNode->idString(), _startingNode);
     };
 
     bool saveComplete() const {
