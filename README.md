@@ -30,6 +30,11 @@ node tables. I will document this in more detail shortly.
    for it will be trivial.
  * Emscripten factory code to load nodes through REST.
  * Native factory code to load nodes through REST.
+ * Initial support for writing to the database via the REST
+   server, but this is currently causing the REST server to crash.
+   I'm building out some support code to remove test IDs
+   from the database after the test runs and plan to write
+   more tests to try to isolate the problem.
  
  Nodes are just data. They can be fit together in any way, but there
  is almost nothing right now that actually does so. You can just stick
