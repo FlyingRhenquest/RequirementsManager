@@ -168,8 +168,21 @@ namespace fr::RequirementsManager {
      */
 
     void postGraph(std::shared_ptr<Node> graph) {
-      auto saver = std::make_shared<SaveNodesNode<WorkerThreadType>>(graph);
-      _threadpool->enqueue(saver);
+      // Set all graph node changesd flags to true right now to force database
+      // saves
+      if (graph) {
+        graph->traverse([](std::shared_ptr<Node> node) {
+          if (node) {
+            node->changed = true;
+          } else {
+            std::cout << "postGraph encountered a null during graph traversal. Ignoring." << std::endl;
+          }
+        });
+        auto saver = std::make_shared<SaveNodesNode<WorkerThreadType>>(graph);
+        _threadpool->enqueue(saver);
+      } else {
+        std::cout << "postGraph received a null node! Ignoring." << std::endl;
+      }
     }
     
     /**
@@ -262,6 +275,7 @@ namespace fr::RequirementsManager {
           archive(node);
         }
         postGraph(node);
+        std::cout << "POST Complete" << std::endl;
         response.send(Pistache::Http::Code::Ok, "OK");
         return Pistache::Rest::Route::Result::Ok;
       };
@@ -271,7 +285,7 @@ namespace fr::RequirementsManager {
                                         
       Pistache::Rest::Routes::Get(_router, "/graph/:id", graphRoute);
 
-      Pistache::Rest::Routes::Post(_router, "graph/:id", postRoute);
+      Pistache::Rest::Routes::Post(_router, "/graph/:id", postRoute);
 
       Pistache::Rest::Routes::Options(_router, "/*", optionsRoute);
     }
@@ -306,11 +320,13 @@ namespace fr::RequirementsManager {
         _serverThread = std::thread([&]() {
           _running = true;
           _shutdown = false;
-          auto opts = Pistache::Http::Endpoint::options().threads(endpointThreads);
+          // Set max request size to 64MB, which might not be enough if we start sending images around.
+          auto opts = Pistache::Http::Endpoint::options().threads(endpointThreads).maxRequestSize(64 * 1024 * 1024);
           _server.init(opts);
           _server.setHandler(_router.handler());
           _server.serve();          
         });
+        std::cout << "Started" << std::endl;
       } else {
         throw(std::runtime_error("Server is already running"));
       }

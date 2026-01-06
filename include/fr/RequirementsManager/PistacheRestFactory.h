@@ -68,7 +68,7 @@ namespace fr::RequirementsManager {
       client.shutdown();
     }
     
-    void fetch(const std::string& url) {
+    void fetch(const std::string& url) override {
       auto promise = client.get(url).send();
       
       promise.then(
@@ -120,7 +120,7 @@ namespace fr::RequirementsManager {
       client.shutdown();
     }
 
-    void fetch(const std::string &url) {
+    void fetch(const std::string &url) override {
       auto promise = client.get(url).send();
 
       promise.then(
@@ -130,6 +130,39 @@ namespace fr::RequirementsManager {
           [&](std::exception_ptr eptr) {
             this->fail(eptr);
           });
+    }
+
+    void post(std::string url, std::shared_ptr<Node> node) override {
+      // It SHOULD end with graph but the user's typing it manually
+      // and graphs is probably the first thing they'll try
+      size_t pos = url.find("graphs");
+      if (pos != std::string::npos) {
+        url.replace(pos, 6, "graph");
+      }
+      // And it REALLY should end with a UUID, but I'm not gonna make
+      // them type or copy THAT!
+      if (url.ends_with("graph")) {
+        url.append("/");
+        url.append(node->idString());
+      }
+      std::cout << "Posting to " << url << std::endl;
+      std::stringstream stream;
+      try {
+        cereal::JSONOutputArchive archive(stream);
+        archive(node);
+      } catch (cereal::Exception& e) {
+        std::cout << "POST failed: " << e.what() << std::endl;
+        return;
+      }
+      std::string data = stream.str();
+      auto promise = client.post(url).body(data).send();
+      promise.then(
+         [&](Pistache::Http::Response response) {
+           std::cout << "Graph successfully posted" << std::endl;
+         },
+         [&](std::exception_ptr eptr) {
+           this->fail(eptr);
+         });
     }
   };
   

@@ -45,8 +45,8 @@ namespace fr::RequirementsManager {
     // and never work.
     boost::signals2::signal<void(const std::string &)> error;
 
-    ServerLocatorNodeFactory() = default;
-    virtual ~ServerLocatorNodeFactory() = default;
+    ServerLocatorNodeFactory() {};
+    virtual ~ServerLocatorNodeFactory() {};
 
     virtual void fetch(const std::string& url) {};
   };
@@ -59,11 +59,13 @@ namespace fr::RequirementsManager {
     // Error is called with a string if an error occurs
     boost::signals2::signal<void(const std::string&)> error;
 
-    GraphNodeFactory() = default;
-    virtual ~GraphNodeFactory() = default;
+    GraphNodeFactory() {}
+    virtual ~GraphNodeFactory() {}
 
     // Fetch a URL (Subscribe to callbacks before running this)
     virtual void fetch(const std::string& url) {};
+    // POST a node back to the REST server
+    virtual void post(std::string url, std::shared_ptr<Node> node) {}
   };
   
 }

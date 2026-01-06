@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <fr/RequirementsManager/AllNodeTypes.h>
 #include <boost/signals2.hpp>
 #include <format>
 #include <fr/RequirementsManager.h>
@@ -26,8 +27,10 @@
 #include <fr/RequirementsManager/ThreadPool.h>
 #include <fr/types/Concepts.h>
 #include <fr/types/Typelist.h>
+#include <mutex>
 #include <pqxx/pqxx>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -50,18 +53,13 @@ namespace fr::RequirementsManager {
     // you need to add a struct in that file that
     // can save and update it and then add it to the list
     // here.
-    using SpecificSaveableTypes =
-      fr::types::Typelist<GraphNode, Organization, Product, Project, Requirement,
-                          Story, UseCase, Text, Completed, KeyValue, TimeEstimate,
-                          Effort, Role, Actor, Goal, Purpose, Person, EmailAddress,
-                          PhoneNumber, InternationalAddress, USAddress, Event>;
+    using SpecificSaveableTypes = AllNodeTypes;
 
     // Set connection parameters up to connect to the database
     // from outside the application
     pqxx::connection _connection;
     pqxx::work _transaction;
-    
-    
+        
     /**
      * Indicates that this node has exited its
      * run method.
@@ -97,6 +95,11 @@ namespace fr::RequirementsManager {
 
     Node::PtrType _startingNode;
 
+    /**
+     * Mutex to control access to complete notificaiton
+     */
+    std::mutex _completeMutex;
+    
     /**
      * Try to save specific data in a node shared ptr using the
      * SpecificSaveableTypes list I defined above. This will
@@ -235,6 +238,8 @@ namespace fr::RequirementsManager {
         // Subscribe to saver complete signal and forward it back to the parent (this)
         // object.
         saver->complete.connect([&](const std::string& id, Node::PtrType n) {
+          std::lock_guard<std::mutex> lock(_completeMutex);
+          std::cout << "Completed " << n->idString() << std::endl;
           this->complete(id, n);
         });
         
@@ -344,6 +349,8 @@ namespace fr::RequirementsManager {
       
       _transaction.commit();
       _saveComplete = true;
+      std::lock_guard<std::mutex> lock(_completeMutex);
+      std::cout << "Completed " << _startingNode->idString() << std::endl;
       complete(_startingNode->idString(), _startingNode);
     };
 

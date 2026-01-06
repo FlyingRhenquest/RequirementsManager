@@ -87,9 +87,9 @@ namespace fr::RequirementsManager {
       return factory;
     }
     
-    virtual ~EmscriptenServerLocatorFactory() = default;
+    virtual ~EmscriptenServerLocatorFactory() {};
 
-    void fetch(const std::string& url) {
+    void fetch(const std::string& url) override {
       emscripten_fetch_attr_t attr;
       emscripten_fetch_attr_init(&attr);
       strcpy(attr.requestMethod, "GET");
@@ -125,6 +125,10 @@ namespace fr::RequirementsManager {
       emscripten_fetch_close(ctx);
     }
 
+    static void postSuccess(emscripten_fetch_t *ctx) {
+      std::cout << "Graph successfully posted." << std::endl;
+    }
+
     static void fail(emscripten_fetch_t *ctx) {
       std::string msg = std::format("Bad response from server: {}", ctx->status);
       EmscriptenGraphNodeFactory::instance().error(msg);
@@ -138,13 +142,49 @@ namespace fr::RequirementsManager {
       return factory;
     }
 
-    void fetch(const std::string& url) {
+    virtual ~EmscriptenGraphNodeFactory() {}
+
+    void fetch(const std::string& url) override {
       emscripten_fetch_attr_t attr;
       emscripten_fetch_attr_init(&attr);
       strcpy(attr.requestMethod, "GET");
       attr.onsuccess = EmscriptenGraphNodeFactory::success;
       attr.onerror = EmscriptenGraphNodeFactory::fail;
       attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+      emscripten_fetch(&attr, url.c_str());
+    }
+
+    void post(std::string url, std::shared_ptr<Node> node) override {
+      // It SHOULD end with graph but the user's typing it manually
+      // and graphs is probably the first thing they'll try
+      size_t pos = url.find("graphs");
+      if (pos != std::string::npos) {
+        string.replace(pos, 6, "graph");
+      }
+      // And it REALLY should end with a UUID, but I'm not gonna make
+      // them type or copy THAT!
+      if (url.ends_with("graph")) {
+        url.append("/");
+        url.append(node->idString());
+      }
+      std::cout << "Posting to " << url << std::cout;
+      emscripten_fetch_attr_t attr;      
+      emscripten_fetch_attr_init(&attr);
+      strcpy(attr.requestMethod, "POST");
+      attr.onsuccess = EmscriptenGraphNodeFactory::postSuccess;
+      attr.onerrror = EmscriptenGraphNodeFactory::fail;
+
+      std::stringstream stream;
+      try {
+        cereal::JSONOutputArchive(stream);
+        archive(node);
+      } catch (cereal::Exception &e) {
+        std::cout << "POST failed: " << e.what() << std::endl;
+        return;
+      }
+      std::string data = stream.str();
+      attr.requestData = data.c_str();
+      attr.requestDataSize = data.size();
       emscripten_fetch(&attr, url.c_str());
     }
   };

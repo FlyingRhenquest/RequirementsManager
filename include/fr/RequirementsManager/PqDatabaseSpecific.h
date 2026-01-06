@@ -62,6 +62,10 @@ namespace fr::RequirementsManager::database {
     bool load(Node::PtrType n, pqxx::work& transaction) {
       return false;
     }
+
+    void remove(Node::PtrType n, pqxx::work& transaction) {
+      throw std::logic_error("Attempted to remove an unknown node type (type not specialized in PqDatabaseSpecific.h)");
+    }
   };
 
 
@@ -107,6 +111,14 @@ namespace fr::RequirementsManager::database {
         node->setTitle(row["title"].as<std::string>());
       }
       return ret;
+    }
+
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
     }
     
   };
@@ -164,6 +176,14 @@ namespace fr::RequirementsManager::database {
       }
       return ret;
     }
+
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }
     
   };
 
@@ -219,6 +239,14 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
     
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }
+
   };
 
   /***********************************************************/
@@ -272,6 +300,15 @@ namespace fr::RequirementsManager::database {
       }
       return ret;
     }
+
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }
+    
   };
 
   /*******************************************************************/
@@ -327,6 +364,14 @@ namespace fr::RequirementsManager::database {
         node->setFunctional(row["functional"].as<bool>());
       }
       return ret;
+    }
+
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
     }
     
   };
@@ -385,6 +430,14 @@ namespace fr::RequirementsManager::database {
       }
       return ret;
     }
+
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }    
   };
 
   /******************************************************************/
@@ -436,6 +489,14 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }
+    
   };
 
   /********************************************************************/
@@ -485,6 +546,14 @@ namespace fr::RequirementsManager::database {
         node->setText(row["text"].as<std::string>());
       }
       return ret;
+    }
+
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
     }
     
   };
@@ -538,6 +607,14 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }
+    
   };
 
   /**********************************************************************/
@@ -591,6 +668,14 @@ namespace fr::RequirementsManager::database {
       }
       return ret;
     }
+
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }    
 
   };
 
@@ -652,6 +737,14 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }    
+
   };
 
   /******************************************************************/
@@ -706,6 +799,14 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }    
+
   };
 
   /******************************************************************/
@@ -756,6 +857,14 @@ namespace fr::RequirementsManager::database {
       }
       return ret;
     }
+
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }    
 
   };
 
@@ -808,6 +917,13 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }    
     
   };
 
@@ -877,6 +993,14 @@ namespace fr::RequirementsManager::database {
       }
       return ret;
     }
+
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }
     
   };
 
@@ -937,6 +1061,14 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }    
+
   };
 
   /*************************************************************/
@@ -991,6 +1123,13 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }    
 
   };
 
@@ -1042,6 +1181,14 @@ namespace fr::RequirementsManager::database {
       }
       return ret;
     }
+
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }    
 
   };
 
@@ -1101,6 +1248,14 @@ namespace fr::RequirementsManager::database {
       }
       return ret;
     }
+
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }    
 
   };
 
@@ -1167,6 +1322,13 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }    
     
   };
 
@@ -1234,6 +1396,14 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }    
+
   };
 
   /***********************************************************************/
@@ -1286,6 +1456,14 @@ namespace fr::RequirementsManager::database {
       }
       return ret;
     }
+
+    void remove(Node::PtrType node, pqxx::work& transaction) {
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }    
 
   };
 
