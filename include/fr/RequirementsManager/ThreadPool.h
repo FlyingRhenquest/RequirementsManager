@@ -145,24 +145,19 @@ namespace fr::RequirementsManager {
     // terminate
 
     void shutdown() {
-      std::cout << "Threadpool: Shutting down" << std::endl;
       for (auto worker : _threads) {
-        std::cout << "Shutting down worker" << std::endl;
         worker->shutdown();
       }
-      std::cout << "Notifying workers" << std::endl;
       _workCondition->notify_all();
       _state = ThreadState::Draining;
     }
 
     void join() {
-      std::cout << "Waiting for threads to terminate" << std::endl;
       for (auto worker : _threads) {
         if (worker->joinable()) {
           worker->join();
         }
       }
-      std::cout << "All threads terminated" << std::endl;
       _state = ThreadState::Shutdown;
     }
     

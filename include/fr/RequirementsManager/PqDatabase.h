@@ -117,26 +117,21 @@ namespace fr::RequirementsManager {
       // Try cast node and call the next typelist function if this one
       // isn't the right type
       using currentType = List::head::type;
-      std::cout << "saveSpecificData: Trying " << database::DbSpecificData<currentType>::name << std::endl;
+
       std::shared_ptr<currentType> tryPtr = std::dynamic_pointer_cast<currentType>(node);
       if (tryPtr) {
-        std::cout << "saveSpecificData: This node is a " << tryPtr->getNodeType() << std::endl;
         database::DbSpecificData<currentType> specificSaver;
         if (!database::nodeInTable<currentType>(tryPtr, _transaction)) {
-          std::cout << "Inserting data" << std::endl;
           specificSaver.insert(tryPtr, _transaction);
         } else {
-          std::cout << "Updating data" << std::endl;
           specificSaver.update(tryPtr, _transaction);
         }
       } else {
         // Try next type if there is one
         if constexpr(!std::is_void_v<typename List::tail::head::type>) {
-          std::cout << "Trying next type" << std::endl;
           saveSpecificData<typename List::tail>(node);
         }
       }
-      return;
     }
     
     /**
@@ -183,28 +178,8 @@ namespace fr::RequirementsManager {
 
       if (nodeInDb(node)) {
         clearNodeDBAssociations(node);
-      } else {
-        std::string insertCmd("INSERT INTO node (id, node_type) VALUES($1,$2);");
-        pqxx::params p{
-          node->idString(),
-          node->getNodeType()
-        };
-        _transaction.exec(insertCmd, p);
       }
-
-      // Use a stream to update node_associations
       
-      pqxx::stream_to stream = pqxx::stream_to::table(_transaction, {"public", "node_associations"}, {"id", "association", "type"});
-      // Now we just need to write the node associations
-      for (auto upNode : node->up) {
-        stream.write_values(node->idString(), upNode->idString(), "up");
-      }
-
-      for (auto downNode : node->down) {
-        stream.write_values(node->idString(), downNode->idString(), "down");
-      }
-      stream.complete();
-
       // Save any node-specific data in the database
       saveSpecificData<SpecificSaveableTypes>(node);
       
@@ -214,10 +189,11 @@ namespace fr::RequirementsManager {
      * Handle traversal, creation of SaveNodesNodes and enqueueing them
      * into the threadpool. Each enqueued saveNodesNode will be
      * set to save just that one node.
+     *
+     * TODO: Remove traverse and use Node::traverse instead.
      */
 
     void traverse(Node::PtrType node) {
-      std::cout << "Traverse : " << node->idString() << std::endl;
       auto owner = this->getOwner();
       if (!owner) {
         // This can happen if run is called directly rather
@@ -232,13 +208,11 @@ namespace fr::RequirementsManager {
         // Subscribe to saver complete signal and forward it back to the parent (this)
         // object.
         saver->complete.connect([&](const std::string& id, Node::PtrType n) {
-          std::cout << "Completed " << n->idString() << std::endl;
           this->complete(id, n);
         });
         
         // Only enqueue work if we're in a thread pool
         if (owner) {
-          std::cout << "Enqueuing saver for " << node->idString() << std::endl;
           owner->enqueue(saver);
         }
         // Record this worker as work done in this object.
@@ -305,7 +279,6 @@ namespace fr::RequirementsManager {
      * depending on how saveThisNodeOnly is set.
      */
     void run() override {
-      std::cout << "SaveNodesNodes::run" << std::endl;
       if (!this->initted) {
         this->init();
       }
@@ -320,7 +293,6 @@ namespace fr::RequirementsManager {
         // exception or error before commit is called.
         _startingNode->changed = false;
         
-        std::cout << "Saving " << _startingNode->idString() << std::endl;
         dbSaveNode(_startingNode);
         _alreadySaved[_startingNode->idString()] = _startingNode;
       }
@@ -330,11 +302,9 @@ namespace fr::RequirementsManager {
         // individual SaveNodesNodes with _saveThisNodeOnly enabled
         // if the node is not in the already saved list and the node
         // is marked "changed"
-        std::cout << "Traversing up" << std::endl;;
         for (auto node : _startingNode->up) {
           traverse(node);
         }
-        std::cout << "Traversing down" << std::endl;
         for (auto node : _startingNode->down) {
           traverse(node);
         }
@@ -342,7 +312,7 @@ namespace fr::RequirementsManager {
       
       _transaction.commit();
       _saveComplete = true;
-      std::cout << "Completed " << _startingNode->idString() << std::endl;
+
       this->complete(_startingNode->idString(), _startingNode);
     };
 

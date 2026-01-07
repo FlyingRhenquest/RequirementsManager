@@ -18,6 +18,7 @@
 #include <fr/RequirementsManager/Node.h>
 #include <fr/RequirementsManager/NodeConnector.h>
 #include <fr/RequirementsManager/PqDatabase.h>
+#include <fr/RequirementsManager/RemoveNodesNode.h>
 #include <fr/RequirementsManager/ThreadPool.h>
 #include <gtest/gtest.h>
 
@@ -29,13 +30,16 @@ using namespace fr::RequirementsManager;
  */
 
 TEST(DatabaseTests, TestSaveOneNode) {
-  auto nodeToSave = std::make_shared<Node>();
+  auto remover = std::make_shared<RemoveNodesNode<WorkerThread>>();
+  auto nodeToSave = std::make_shared<Node>();  
   nodeToSave->init();
   auto saver = std::make_shared<SaveNodesNode<WorkerThread>>(nodeToSave);
+  remover->addDown(nodeToSave);
   // This is designed to be run in a threadpool but for this test
   // we'll just run it directly
   saver->run();
   ASSERT_TRUE(saver->saveComplete());
+  remover->run();
 }
 
 /**
@@ -44,9 +48,11 @@ TEST(DatabaseTests, TestSaveOneNode) {
 TEST(DatabaseTests, TwoNodesThreadPool) {
   // Use this mutex and condition variable to
   // wait for saver::run to complete
+  auto remover = std::make_shared<RemoveNodesNode<WorkerThread>>();
   std::mutex waitMutex;
   std::condition_variable waitCv;
   auto parent = std::make_shared<Node>();
+  remover->addDown(parent);
   auto child = std::make_shared<Node>();
   std::string savedId;
   connectNodes(parent, child);
@@ -80,6 +86,7 @@ TEST(DatabaseTests, TwoNodesThreadPool) {
   threadpool->shutdown();
   threadpool->join();
   ASSERT_TRUE(saver->treeSaveComplete());
+  remover->run();
 }
 
 /**
@@ -88,10 +95,12 @@ TEST(DatabaseTests, TwoNodesThreadPool) {
  */
 
 TEST(DatabaseTests, SpecificNodeTests) {
+  auto remover = std::make_shared<RemoveNodesNode<WorkerThread>>();
   std::mutex waitMutex;
   std::condition_variable waitCv;
   std::string savedId;
   auto projectTestWombat = std::make_shared<fr::RequirementsManager::Project>();
+  remover->addDown(projectTestWombat);
   auto wombatProduct = std::make_shared<fr::RequirementsManager::Product>();
   projectTestWombat->setName("Test Wombat");
   projectTestWombat->setDescription("Test A Wombat");
@@ -116,4 +125,5 @@ TEST(DatabaseTests, SpecificNodeTests) {
   threadpool->shutdown();
   threadpool->join();
   ASSERT_TRUE(saver->treeSaveComplete());
+  remover->run();
 }

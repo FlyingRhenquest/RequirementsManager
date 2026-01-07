@@ -19,6 +19,7 @@
 #include <fr/RequirementsManager/NodeConnector.h>
 #include <fr/RequirementsManager/PqDatabase.h>
 #include <fr/RequirementsManager/PqNodeFactory.h>
+#include <fr/RequirementsManager/RemoveNodesNode.h>
 #include <gtest/gtest.h>
 #include <mutex>
 #include <thread>
@@ -93,6 +94,8 @@ TEST(NodeFactoryTest, LoadAGraph) {
   auto threadpool = std::make_shared<ThreadPool<WorkerThread>>();
   threadpool->startThreads(4);
   auto saver = std::make_shared<SaveNodesNode<WorkerThread>>(graph);
+  RemoveNodesNode<WorkerThread> remover;
+  remover.addDown(graph);
 
   std::mutex waitMutex;
   std::condition_variable waitCv;
@@ -146,4 +149,5 @@ TEST(NodeFactoryTest, LoadAGraph) {
   for (int i = 0; i < origStrings.size(); ++i) {
     ASSERT_EQ(origStrings[i], restoredStrings[i]);
   }
+  remover.run();
 }

@@ -17,6 +17,7 @@
 #include <fr/RequirementsManager/GraphNodeLocator.h>
 #include <fr/RequirementsManager/PqDatabase.h>
 #include <fr/RequirementsManager/PqNodeFactory.h>
+#include <fr/RequirementsManager/RemoveNodesNode.h>
 #include <gtest/gtest.h>
 #include <mutex>
 #include <thread>
@@ -34,6 +35,8 @@ TEST(GraphNodeLocatorTests, WriteRead) {
   auto threadpool = std::make_shared<ThreadPool<WorkerThread>>();
   threadpool->startThreads(4);
   auto saver = std::make_shared<SaveNodesNode<WorkerThread>>(node);
+  RemoveNodesNode<WorkerThread> remover;
+  remover.addDown(node);
   bool saved = false;
   saver->complete.connect(
       [&waitCv, &saved](const std::string &id, Node::PtrType /* Notused */) {
@@ -55,4 +58,5 @@ TEST(GraphNodeLocatorTests, WriteRead) {
     }
   }
   ASSERT_TRUE(foundKey);
+  remover.run();
 }

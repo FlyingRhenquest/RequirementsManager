@@ -26,6 +26,15 @@
  * I'm storing structures here that can be queried to
  * retrieve an update or insert command for a specific
  * node time.
+ *
+ * These are looked up by static constexpr data (name
+ * and tableName) but I create an instance of the
+ * class to actually save the objects. So all the
+ * specialized things can inherit from my
+ * specialized node and that's fine.
+ * The non-specialized thing isn't inherited
+ * and doesn't inherit from anything else and that's
+ * also fine.
  */
 
 namespace fr::RequirementsManager::database {
@@ -68,17 +77,97 @@ namespace fr::RequirementsManager::database {
     }
   };
 
+  /************************************************************/
+  // Node -- All Other Things Inherit From This, but not virtually.
+  // Since all the other functions' insert,update,load and remove
+  // methods use the specialized node types, they don't conflict
+  // with the base node definitions, BUT we can still call
+  // the parent node methods with Parent::insert et al.
+  //
+  // We don't need to call Parent::load for anything, since
+  // the parent class one is a no-op
+
+  template <>
+  struct DbSpecificData<Node> {
+    using Type = Node;
+    using PtrType = Type::PtrType;
+
+    static constexpr char name[] = "Node";
+    static constexpr char tableName[] = "node";
+    
+    void insert(PtrType node, pqxx::work& transaction) {
+      // Insert Node Into node
+      std::string insertCmd("INSERT INTO node (id, node_type) VALUES($1,$2);");
+      pqxx::params p{
+        node->idString(),
+        node->getNodeType()
+      };
+      transaction.exec(insertCmd, p);
+
+      // Write node associations
+      // These get cleared in PqDatabase.h if
+      // the node was already in the database, so
+      // they need to be rewritten if we're inserting
+      // or updating.
+      update(node, transaction);
+    }
+
+    void update(PtrType node, pqxx::work& transaction) {
+      // Stream node associations into node_associations
+      pqxx::stream_to stream = pqxx::stream_to::table(transaction,
+            {"public", "node_associations"}, {"id", "association", "type"});
+
+      for (auto upNode : node->up) {
+        stream.write_values(node->idString(), upNode->idString(), "up");
+      }
+
+      for (auto downNode : node->down) {
+        stream.write_values(node->idString(), downNode->idString(), "down");
+      }
+      stream.complete();
+      transaction.commit();
+    }
+
+    bool load(PtrType node, pqxx::work& transaction) {
+      // This is a no-op in node, because all the required node data
+      // gets loaded in the other specific types.
+
+      // Returns true because all the data stored in the node passed
+      // in is all the data that is in the database for this node.
+      // The only relevant thing in there is the UUID.
+      return true;
+    }
+
+    void remove(PtrType node, pqxx::work& transaction) {
+      // Remove all associations for this node
+      std::string rmAssociations("DELETE FROM node_associations WHERE id = $1 OR association = $1");
+      // Remove from node
+      std::string rmNode("DELETE FROM node WHERE id = $1");
+      pqxx::params p{
+        node->idString()
+      };
+      // Run the deletes
+      transaction.exec(rmAssociations,p);
+      transaction.exec(rmNode,p);
+      transaction.commit();
+    }
+  };
+
 
   /************************************************************/
   // GraphNode-Specific type
 
   template <>
-  struct DbSpecificData<fr::RequirementsManager::GraphNode> {
-    using type = fr::RequirementsManager::GraphNode;
+  struct DbSpecificData<GraphNode> : public DbSpecificData<Node> {
+    using Type = GraphNode;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "GraphNode";
     static constexpr char tableName[] = "graph_node";
 
-    void insert(GraphNode::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node,transaction);
       std::string cmd = std::format("INSERT INTO {} (id,title) VALUES ($1, $2);", tableName);
       pqxx::params p{
         node->idString(),
@@ -87,7 +176,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(GraphNode::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd = std::format("UPDATE {} SET title = $1 WHERE id = $2;", tableName);
       pqxx::params p{
         node->getTitle(),
@@ -96,7 +186,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd,p);
     }
 
-    bool load(GraphNode::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("select * from {} WHERE ID = $1", tableName);
       pqxx::params p{
@@ -113,14 +203,14 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       // Delete from specific table where this object lives
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
       };
       transaction.exec(cmd, p);
-      // Delete from node and node_associations for this object
     }
     
   };
@@ -129,12 +219,16 @@ namespace fr::RequirementsManager::database {
   // Organization-Specific type
   
   template <>
-  struct DbSpecificData<fr::RequirementsManager::Organization> {
-    using type = fr::RequirementsManager::Organization;
+  struct DbSpecificData<Organization> : public DbSpecificData<Node> {
+    using Type = Organization;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "Organization";
     static constexpr char tableName[] = "organization";
 
-    void insert(Organization::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO organization (id, locked, name) VALUES ($1, $2, $3);");
       pqxx::params p{
         node->idString(),
@@ -144,7 +238,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(Organization::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE organization SET name = $1, locked = $2 WHERE id = $3;");
       pqxx::params p{
         node->getName(),
@@ -154,7 +249,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(Organization::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -179,7 +274,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -193,12 +289,16 @@ namespace fr::RequirementsManager::database {
   // Product-specific type
   
   template <>
-  struct DbSpecificData<fr::RequirementsManager::Product> {
-    using type = fr::RequirementsManager::Product;
+  struct DbSpecificData<Product> : public DbSpecificData<Node> {
+    using Type = Product;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "Product";
     static constexpr char tableName[] = "product";
 
-    void insert(Product::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO product (id,title,description) VALUES ($1, $2, $3);");
       pqxx::params p{
         node->idString(),
@@ -208,7 +308,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(Product::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE product SET title = $1, description = $2 WHERE id = $3;");
       pqxx::params p{
         node->getTitle(),
@@ -218,7 +319,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(Product::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -241,7 +342,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
     
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -255,12 +357,16 @@ namespace fr::RequirementsManager::database {
   // Project-specific type
 
   template <>
-  struct DbSpecificData<fr::RequirementsManager::Project> {
-    using type = fr::RequirementsManager::Project;
+  struct DbSpecificData<Project> : public DbSpecificData<Node> {
+    using Type = Project;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "Project";
     static constexpr char tableName[] = "project";
 
-    void insert(Project::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO project (id,name,description) VALUES ($1, $2, $3);");
       pqxx::params p{
         node->idString(),
@@ -270,7 +376,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(Project::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE project SET name = $1, description = $2 WHERE id = $3;");
       pqxx::params p{
         node->getName(),
@@ -280,7 +387,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);         
     }
 
-    bool load(Project::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -303,7 +410,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -317,12 +425,16 @@ namespace fr::RequirementsManager::database {
   // Requirement-Specific Type
 
   template <>
-  struct DbSpecificData<fr::RequirementsManager::Requirement> {
-    using type = fr::RequirementsManager::Requirement;
+  struct DbSpecificData<Requirement> : public DbSpecificData<Node> {
+    using Type = Requirement;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "Requirement";
     static constexpr char tableName[] = "requirement";
 
-    void insert(Requirement::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO requirement (id, title, text, functional) VALUES ($1, $2, $3, $4);");
       pqxx::params p{
         node->idString(),
@@ -333,7 +445,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd,p);
     }
 
-    void update(Requirement::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE requirement SET title = $1, text = $2, functional = $3 WHERE id = $4;");
       pqxx::params p{
         node->getTitle(),
@@ -344,7 +457,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
     
-    bool load(Requirement::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -368,7 +481,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -382,12 +496,16 @@ namespace fr::RequirementsManager::database {
   // Story-specific type
 
   template<>
-  struct DbSpecificData<fr::RequirementsManager::Story> {
-    using type = fr::RequirementsManager::Story;
+  struct DbSpecificData<Story> : public DbSpecificData<Node> {
+    using Type = Story;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "Story";
     static constexpr char tableName[] = "story";
 
-    void insert(Story::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO story (id, title, goal, benefit) values ($1, $2, $3, $4);");
       pqxx::params p{
         node->idString(),
@@ -398,7 +516,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(Story::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE story SET title = $1, goal = $2, benefit = $3 WHERE id = $4;");
       pqxx::params p{
         node->getTitle(),
@@ -409,7 +528,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(Story::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -433,7 +552,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -446,12 +566,16 @@ namespace fr::RequirementsManager::database {
   // UseCase-Specific type
 
   template<>
-  struct DbSpecificData<fr::RequirementsManager::UseCase> {
-    using type = fr::RequirementsManager::UseCase;
+  struct DbSpecificData<UseCase> : public DbSpecificData<Node> {
+    using Type = UseCase;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "UseCase";
     static constexpr char tableName[] = "use_case";
 
-    void insert(UseCase::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO use_case (id,name) VALUES ($1, $2);");
       pqxx::params p{
         node->idString(),
@@ -460,7 +584,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(UseCase::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE use_case SET name = $1 WHERE id = $2;");
       pqxx::params p{
         node->getName(),
@@ -469,7 +594,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(UseCase::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -491,7 +616,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -505,12 +631,16 @@ namespace fr::RequirementsManager::database {
   // Text-Specific type
 
   template<>
-  struct DbSpecificData<fr::RequirementsManager::Text> {
-    using type = fr::RequirementsManager::Text;
+  struct DbSpecificData<Text> : public DbSpecificData<Node> {
+    using Type = Text;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "Text";
     static constexpr char tableName[] = "text";
 
-    void insert(Text::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO text (id, text) VALUES ($1, $2);");
       pqxx::params p{
         node->idString(),
@@ -519,7 +649,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(Text::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE text SET text = $1 WHERE id = $2;");
       pqxx::params p {
         node->getText(),
@@ -528,7 +659,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(Text::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -550,7 +681,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -564,12 +696,16 @@ namespace fr::RequirementsManager::database {
   // Completed-Specific type
 
   template <>
-  struct DbSpecificData<fr::RequirementsManager::Completed> {
-    using type = fr::RequirementsManager::Completed;
+  struct DbSpecificData<Completed> : public DbSpecificData<Node> {
+    using Type = Completed;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+      
     static constexpr char name[] = "Completed";
     static constexpr char tableName[] = "completed";
 
-    void insert(Completed::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO completed (id, description) VALUES ($1, $2);");
       pqxx::params p{
         node->idString(),
@@ -578,7 +714,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(Completed::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE completed SET description = $1 WHERE id = $2;");
       pqxx::params p{
         node->getDescription(),
@@ -587,7 +724,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(Completed::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -609,7 +746,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -623,12 +761,16 @@ namespace fr::RequirementsManager::database {
   // KeyValue-Specific type
 
   template <>
-  struct DbSpecificData<fr::RequirementsManager::KeyValue> {
-    using type = fr::RequirementsManager::KeyValue;
+  struct DbSpecificData<KeyValue> : public DbSpecificData<Node> {
+    using Type = KeyValue;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "KeyValue";
     static constexpr char tableName[] = "keyvalue";
 
-    void insert(KeyValue::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO keyvalue (id, key, value) VALUES ($1, $2, $3);");
       pqxx::params p{
         node->idString(),
@@ -638,7 +780,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(KeyValue::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE keyvalue SET key = $1, value = $2 WHERE id = $3;");
       pqxx::params p{
         node->getKey(),
@@ -648,7 +791,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(KeyValue::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -671,7 +814,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -685,12 +829,16 @@ namespace fr::RequirementsManager::database {
   // TimeEstimate-specific data
 
   template<>
-  struct DbSpecificData<fr::RequirementsManager::TimeEstimate> {
-    using type = fr::RequirementsManager::TimeEstimate;
+  struct DbSpecificData<TimeEstimate> : public DbSpecificData<Node> {
+    using Type = TimeEstimate;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+      
     static constexpr char name[] = "TimeEstimate";
     static constexpr char tableName[] = "time_estimate";
 
-    void insert(TimeEstimate::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO time_estimate (id, text, estimate, started, start) values ($1, $2, $3, $4, $5);");
       pqxx::params p{
         node->idString(),
@@ -702,7 +850,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(TimeEstimate::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE time_estimate SET text=$1, estimate=$2, started=$3, start=$4  WHERE id = $5;");
       pqxx::params p{
         node->getText(),
@@ -714,7 +863,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(TimeEstimate::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -739,7 +888,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -753,12 +903,16 @@ namespace fr::RequirementsManager::database {
   // Effort-Specific type
 
   template <>
-  struct DbSpecificData<fr::RequirementsManager::Effort> {
-    using type = fr::RequirementsManager::Effort;
+  struct DbSpecificData<Effort> : public DbSpecificData<Node> {
+    using Type = Effort;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "Effort";
     static constexpr char tableName[] = "effort";
 
-    void insert(Effort::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO effort (id, text, effort) values ($1, $2, $3);");
       pqxx::params p{
         node->idString(),
@@ -768,7 +922,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(Effort::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE effort SET text = $1, effort = $2 WHERE id = $3;");
       pqxx::params p{
         node->getText(),
@@ -778,7 +933,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(Effort::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -801,7 +956,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -815,12 +971,16 @@ namespace fr::RequirementsManager::database {
   // Role-specific type
 
   template <>
-  struct DbSpecificData<fr::RequirementsManager::Role> {
-    using type = fr::RequirementsManager::Role;
+  struct DbSpecificData<Role> : public DbSpecificData<Node> {
+    using Type = Role;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+      
     static constexpr char name[] = "Role";
     static constexpr char tableName[] = "role";
 
-    void insert(Role::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO role (id, who) VALUES ($1, $2);");
       pqxx::params p{
         node->idString(),
@@ -829,7 +989,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(Role::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE role SET who = $1 WHERE id = $2;");
       pqxx::params p {
         node->getWho(),
@@ -838,7 +999,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(Role::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -860,7 +1021,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -874,13 +1036,17 @@ namespace fr::RequirementsManager::database {
   // Actor-specific type
 
   template <>
-  struct DbSpecificData<fr::RequirementsManager::Actor> {
-    using type = fr::RequirementsManager::Actor;
+  struct DbSpecificData<Actor> : public DbSpecificData<Node> {
+    using Type = Actor;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "Actor";
     static constexpr char tableName[] = "actor";
 
-    void insert(Actor::PtrType node, pqxx::work& transaction) {
-      std::string cmd("INSERT INTO actor (id, actor) values ($1, $2);");
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
+      std::string cmd("INSERT INTO actor (id, actor) values ($1, $2);");      
       pqxx::params p{
         node->idString(),
         node->getActor()
@@ -888,7 +1054,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd,p);
     }
 
-    void update(Actor::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE actor SET actor = $1 WHERE id = $2;");
       pqxx::params p{
         node->getActor(),
@@ -897,7 +1064,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(Actor::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -919,7 +1086,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -933,14 +1101,18 @@ namespace fr::RequirementsManager::database {
   // Goal-specific type
 
   template <>
-  struct DbSpecificData<fr::RequirementsManager::Goal> {
-    using type = fr::RequirementsManager::Goal;
+  struct DbSpecificData<Goal> : public DbSpecificData<Node> {
+    using Type = Goal;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "Goal";
     static constexpr char tableName[] = "goal";
 
-    void insert(Goal::PtrType node, pqxx::work& transaction) {      
+    void insert(PtrType node, pqxx::work& transaction) {      
       std::string cmd("INSERT INTO goal (id, action, outcome, context, target_date,"
                       "target_date_confidence, alignment) VALUES ($1, $2, $3, $4, $5, $6, $7);");
+      Parent::insert(node, transaction);
       pqxx::params p{
         node->idString(),
         node->getAction(),
@@ -953,7 +1125,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(Goal::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE goal SET action = $1, outcome = $2, context = $3, "
                       "target_date = $4, target_date_confidence = $5, alignment = $6"
                       "WHERE id = $7;");
@@ -969,7 +1142,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(Goal::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -996,7 +1169,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -1010,12 +1184,16 @@ namespace fr::RequirementsManager::database {
   // Purpose-specific type
 
   template <>
-  struct DbSpecificData<fr::RequirementsManager::Purpose> {
-    using type = fr::RequirementsManager::Purpose;
+  struct DbSpecificData<Purpose> : public DbSpecificData<Node> {
+    using Type = Purpose;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "Purpose";
     static constexpr char tableName[] = "purpose";
 
-    void insert(Purpose::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO purpose (id, description, deadline, deadline_confidence)"
                       "VALUES ($1, $2, $3, $4);");
       pqxx::params p{
@@ -1027,7 +1205,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(Purpose::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE purpsoe SET description = $1, deadline = $2,"
                       "deadline_confidence = $3 WHERE id = $4");
       pqxx::params p{
@@ -1039,7 +1218,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(Purpose::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -1063,7 +1242,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -1077,12 +1257,16 @@ namespace fr::RequirementsManager::database {
   // Person-specific type
 
   template<>
-  struct DbSpecificData<fr::RequirementsManager::Person> {
-    using type = fr::RequirementsManager::Person;
+  struct DbSpecificData<Person> : public DbSpecificData<Node> {
+    using Type = Person;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;    
+    
     static constexpr char name[] = "Person";
     static constexpr char tableName[] = "person";
 
-    void insert(Person::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO person (id, first_name, last_name) VALUES ($1, $2, $3);");
       pqxx::params p {
         node->idString(),
@@ -1092,7 +1276,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(Person::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE person SET first_name = $1, last_name = $2 WHERE id = $3;");
       pqxx::params p {
         node->getFirstName(),
@@ -1102,7 +1287,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(Person::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -1125,7 +1310,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -1139,12 +1325,16 @@ namespace fr::RequirementsManager::database {
   // EmailAddress-specific type
 
   template <>
-  struct DbSpecificData<fr::RequirementsManager::EmailAddress> {
-    using type = fr::RequirementsManager::EmailAddress;
+  struct DbSpecificData<EmailAddress> : public DbSpecificData<Node> {
+    using Type = EmailAddress;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;    
+
     static constexpr char name[] = "EmailAddress";
     static constexpr char tableName[] = "email_address";
 
-    void insert(EmailAddress::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO email_address (id, address) VALUES ($1, $2);");
       pqxx::params p {
         node->idString(),
@@ -1153,7 +1343,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd,p);
     }
 
-    void update(EmailAddress::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE email_address set address=$1 WHERE id = $2;");
       pqxx::params p {
         node->getAddress(),
@@ -1162,7 +1353,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(EmailAddress::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -1184,7 +1375,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -1198,12 +1390,16 @@ namespace fr::RequirementsManager::database {
   // PhoneNumber-specific type
 
   template <>
-  struct DbSpecificData<fr::RequirementsManager::PhoneNumber> {
-    using type = fr::RequirementsManager::PhoneNumber;
+  struct DbSpecificData<PhoneNumber> : public DbSpecificData<Node> {
+    using Type = PhoneNumber;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "PhoneNumber";
     static constexpr char tableName[] = "phone_number";
 
-    void insert(PhoneNumber::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO phone_number (id, countrycode, number, phone_type"
                       "VALUES ($1, $2, $3, $4);");
       pqxx::params p{
@@ -1215,7 +1411,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(PhoneNumber::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE phone_number SET countrycode = $1, number = $2,"
                       "phone_type = $3 WHERE id = $4;");
       pqxx::params p{
@@ -1227,7 +1424,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(PhoneNumber::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -1251,7 +1448,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -1265,12 +1463,16 @@ namespace fr::RequirementsManager::database {
   // InternationalAddress-specific type
   
   template <>
-  struct DbSpecificData<fr::RequirementsManager::InternationalAddress> {
-    using type = fr::RequirementsManager::InternationalAddress;
+  struct DbSpecificData<InternationalAddress> : public DbSpecificData<Node> {
+    using Type = InternationalAddress;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "InternationalAddress";
     static constexpr char tableName[] = "international_address";
 
-    void insert(InternationalAddress::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO international_address (id, country_code, address_lines,"
                       "locality, postal_code) VALUES ($1, $2, $3, $4, $5);");
 
@@ -1284,7 +1486,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(InternationalAddress::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE international_address SET country_code = $1, address_lines = $2,"
                       "locality = $3, postal_code = $4 WHERE id = $5;");
 
@@ -1299,7 +1502,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(InternationalAddress::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -1324,7 +1527,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -1338,12 +1542,16 @@ namespace fr::RequirementsManager::database {
   // USAddress-specific type
 
   template <>
-  struct DbSpecificData<fr::RequirementsManager::USAddress> {
-    using type = fr::RequirementsManager::USAddress;
+  struct DbSpecificData<USAddress> : public DbSpecificData<Node> {
+    using Type = USAddress;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "USAddress";
     static constexpr char tableName[] = "us_address";
 
-    void insert(USAddress::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO us_address (id, address_lines, city, state, zipcode) "
                       "VALUES ($1, $2, $3, $4, $5);");
 
@@ -1359,7 +1567,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(USAddress::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE us_address SET address_lines = $1, city = $2, state = $3, "
                       "zipcode = $4 WHERE id = $5;");
 
@@ -1373,7 +1582,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd,p);
     }
 
-    bool load(USAddress::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -1398,7 +1607,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
@@ -1411,12 +1621,16 @@ namespace fr::RequirementsManager::database {
   /***********************************************************************/
   // Event-specific type
   template <>
-  struct DbSpecificData<fr::RequirementsManager::Event> {
-    using type = fr::RequirementsManager::Event;
+  struct DbSpecificData<Event> : public DbSpecificData<Node> {
+    using Type = Event;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+    
     static constexpr char name[] = "Event";
     static constexpr char tableName[] = "event";
 
-    void insert(Event::PtrType node, pqxx::work& transaction) {
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
       std::string cmd("INSERT INTO event (id, name, description) VALUES ($1, $2, $3);");
       pqxx::params p{
         node->idString(),
@@ -1426,7 +1640,8 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    void update(Event::PtrType node, pqxx::work& transaction) {
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
       std::string cmd("UPDATE event SET name = $1, description = $2 WHERE id = $3");
       pqxx::params p{
         node->getName(),
@@ -1436,7 +1651,7 @@ namespace fr::RequirementsManager::database {
       transaction.exec(cmd, p);
     }
 
-    bool load(Event::PtrType node, pqxx::work& transaction) {
+    bool load(PtrType node, pqxx::work& transaction) {
       bool ret = false;
       std::string cmd = std::format("SELECT * from {} WHERE id = $1;", tableName);
       pqxx::params p{
@@ -1459,7 +1674,8 @@ namespace fr::RequirementsManager::database {
       return ret;
     }
 
-    void remove(Node::PtrType node, pqxx::work& transaction) {
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
       std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
       pqxx::params p{
         node->idString()
