@@ -292,10 +292,11 @@ namespace fr::RequirementsManager {
 
   public:
 
-    GraphServer(int port) : _server({Pistache::Ipv4::any(), Pistache::Port(port)}),
-                            _graphEndpoint("graph"),
-                            _graphsEndpoint("graphs"),
-                            _port(port)
+    GraphServer(std::string address, int port) :
+      _server(Pistache::Address(address, port)),
+      _graphEndpoint("graph"),
+      _graphsEndpoint("graphs"),
+      _port(port)
     {
       setupRoutes();
     }
@@ -313,7 +314,10 @@ namespace fr::RequirementsManager {
      * to the threadpool for loading and saving data in the database.
      */
     
-    void start(unsigned int endpointThreads, unsigned int threadPoolThreads) {
+    void start(int endpointThreads, int threadPoolThreads) {
+      std::mutex waiter;
+      std::condition_variable waitCondition;
+      bool started = false;
       if (!_running) {
         _threadpool = std::make_shared<ThreadPool<WorkerThreadType>>();
         _threadpool->startThreads(threadPoolThreads);
@@ -324,8 +328,12 @@ namespace fr::RequirementsManager {
           auto opts = Pistache::Http::Endpoint::options().threads(endpointThreads).maxRequestSize(64 * 1024 * 1024);
           _server.init(opts);
           _server.setHandler(_router.handler());
+          started = true;
+          waitCondition.notify_one();
           _server.serve();          
         });
+        std::unique_lock waitLock(waiter);
+        waitCondition.wait(waitLock, [&started](){return started;});
         std::cout << "Started" << std::endl;
       } else {
         throw(std::runtime_error("Server is already running"));
@@ -341,6 +349,10 @@ namespace fr::RequirementsManager {
         _threadpool->join();
         _running = false;
       }
+    }
+
+    void join() {
+      _threadpool->join();
     }
     
   };

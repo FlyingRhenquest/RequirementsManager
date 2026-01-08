@@ -25,16 +25,10 @@ node tables. I will document this in more detail shortly.
  * Support for reading graphs from a PostgreSQL database
  * Python API for loading and saving nodes.
  * A VERY basic Pistache REST service for loading and saving
-   nodes. The REST service can currently be started via
-   the Python API, but building an executable launcher
-   for it will be trivial.
- * Emscripten factory code to load nodes through REST.
- * Native factory code to load nodes through REST.
- * Initial support for writing to the database via the REST
-   server, but this is currently causing the REST server to crash.
-   I'm building out some support code to remove test IDs
-   from the database after the test runs and plan to write
-   more tests to try to isolate the problem.
+   nodes. This can be started with the RestServer binary
+   that gets built, or via the Python API.
+ * Emscripten factory code to load and save nodes through REST.
+ * Native factory code to load and save nodes through REST.
  
  Nodes are just data. They can be fit together in any way, but there
  is almost nothing right now that actually does so. You can just stick
@@ -118,9 +112,10 @@ needs it.
    docker and play with it.
  * Logic/Rules for how nodes fit together. Right now you can just throw
    any node into any other node.
- * Node has a "changed" flag, set that for changes that need to be saved
-   and figure out what sets it to false -- is it serializing to json? Saving
-   in a SQL database? Other?
+ * Work in some logic for setting the node changed flag. When loaded out
+   of the database or JSON, it should start as false. I should probably
+   be setting it whenever a setter gets called. Are individual nodes
+   granular enough to overwrite completely if one field gets set?
  * Need some nodes for tracking git commit tags. Ideally I could
    grab tags in a pre-commit hook, generate a node with that information
    and write it into the database.

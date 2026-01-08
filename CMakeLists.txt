@@ -170,6 +170,21 @@ if (NOT EMSCRIPTEN)
   if (BUILD_TESTS)
     add_subdirectory(test)
   endif()
+  
+  if (BUILD_REST_SERVER)
+    find_package(Boost COMPONENTS program_options REQUIRED)
+    
+    add_executable(RestServer
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/RestService.cpp"
+    )
+    
+    target_link_libraries(RestServer PUBLIC
+      FR::RequirementsManager
+      libpqxx::pqxx
+      PkgConfig::Pistache
+      Boost::program_options
+    )
+  endif()
 else()
   message(STATUS "Bulding emscripten bindings")
   set(EMSCRIPTEN_LIBRARY_SOURCE

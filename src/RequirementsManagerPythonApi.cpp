@@ -123,8 +123,8 @@ NB_MODULE(FRRequirements, m) {
 #ifdef BUILD_REST_SERVER
 
   nanobind::class_<GraphServer<WorkerThread>>(m, "GraphServer")
-    .def(nanobind::new_([](int port) {
-      return std::make_shared<GraphServer<WorkerThread>>(port);
+    .def(nanobind::new_([](std::string address, int port) {
+      return std::make_shared<GraphServer<WorkerThread>>(address, port);
     }))
     .def("start", &GraphServer<WorkerThread>::start,
          "Start the server. Pass in number of threads to start for the "
