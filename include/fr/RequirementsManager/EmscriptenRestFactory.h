@@ -16,6 +16,12 @@
 
 #pragma once
 
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/json.hpp>
+#include <cereal/archives/portable_binary.hpp>
+#include <cereal/archives/xml.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/vector.hpp>
 #include <emscripten/fetch.h>
 #include <format>
 #include <fr/RequirementsManager.h>
@@ -159,7 +165,7 @@ namespace fr::RequirementsManager {
       // and graphs is probably the first thing they'll try
       size_t pos = url.find("graphs");
       if (pos != std::string::npos) {
-        string.replace(pos, 6, "graph");
+        url.replace(pos, 6, "graph");
       }
       // And it REALLY should end with a UUID, but I'm not gonna make
       // them type or copy THAT!
@@ -167,16 +173,16 @@ namespace fr::RequirementsManager {
         url.append("/");
         url.append(node->idString());
       }
-      std::cout << "Posting to " << url << std::cout;
+      std::cout << "Posting to " << url << std::endl;
       emscripten_fetch_attr_t attr;      
       emscripten_fetch_attr_init(&attr);
       strcpy(attr.requestMethod, "POST");
       attr.onsuccess = EmscriptenGraphNodeFactory::postSuccess;
-      attr.onerrror = EmscriptenGraphNodeFactory::fail;
+      attr.onerror = EmscriptenGraphNodeFactory::fail;
 
       std::stringstream stream;
       try {
-        cereal::JSONOutputArchive(stream);
+        cereal::JSONOutputArchive archive(stream);
         archive(node);
       } catch (cereal::Exception &e) {
         std::cout << "POST failed: " << e.what() << std::endl;
