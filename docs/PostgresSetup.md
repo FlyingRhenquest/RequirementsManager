@@ -16,7 +16,7 @@ they can use to connect to the database.
 
 Install Postgres client, server and dev libraries
 
-    sudo apt install postgres postgresql-client postgresql-server-dev-all
+    sudo apt install postgresql postgresql-client postgresql-server-dev-all
 
 # Set your user up and create a database for them.
 

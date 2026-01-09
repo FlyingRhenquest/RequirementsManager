@@ -97,6 +97,9 @@ if (NOT FRTypes_FOUND)
 
   ExternalProject_Get_Property(FRTypesExternal INSTALL_DIR)
   set(FRTypes_INCLUDE_DIR "${INSTALL_DIR}/include")
-  list(APPEND EXTERNAL_INCLUDE_DIRS "${FRTypes_INCLUDE_DIR}")
+  list(APPEND EXTERNAL_INCLUDE_DIRS
+    $<BUILD_INTERFACE:${FRTypes_INCLUDE_DIR}>
+    $<INSTALL_INTERFACE:include>
+  )
 endif()
 

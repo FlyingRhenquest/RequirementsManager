@@ -15,6 +15,10 @@ find_package(FRTypes CONFIG QUIET)
 set(USING_BOOST_EXTERNAL FALSE)
 set(USING_CEREAL_EXTERNAL FALSE)
 
+SET(FRRequirementsManager_VERSION_MAJOR 0)
+set(FRRequirementsManager_VERSION_MINOR 1)
+set(FRRequirementsManager_VERSION ${FRRequirementsManager_VERSION_MAJOR}.${FRRequirementsManager_VERSION_MINOR})
+
 include(ExternalProject)
 
 set (EXTERNAL_INCLUDE_DIRS "")
@@ -82,6 +86,19 @@ set(LIBRARY_SOURCE
 # build the library and python bindings as usual
 
 if (NOT EMSCRIPTEN)
+  set(Boost_USE_STATIC_LIBS ON)
+  include(GNUInstallDirs)
+  include(CMakePackageConfigHelpers)
+  set(CPACK_GENERATOR "DEB")
+  set(CPACK_PACKAGE_VENDOR "Bruce Ide")
+  set(CPACK_PACKAGE_CONTACT "Bruce Ide")
+  set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Bruce Ide")
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "RequirementsManager Binaries and Python API")
+  set(CPACK_PACKAGE_VERSION "${FRRequirementsManager_VERSION}")
+  include(CPack)
+
+  set(INSTALL_TARGET_LIST "")
+
   find_package(Python REQUIRED COMPONENTS Interpreter Development)
   find_package(nanobind CONFIG REQUIRED)
   find_package(libpqxx CONFIG QUIET)
@@ -103,6 +120,8 @@ if (NOT EMSCRIPTEN)
     ${LIBRARY_SOURCE}
   )  
   add_library(FR::RequirementsManager ALIAS RequirementsManager)
+
+  list(APPEND INSTALL_TARGET_LIST RequirementsManager)
 
   set_target_properties(RequirementsManager PROPERTIES
     FRAMEWORK TRUE
@@ -133,6 +152,7 @@ if (NOT EMSCRIPTEN)
       ${EXTERNAL_INCLUDE_DIRS}
     )
 
+    list(APPEND INSTALL_TARGET_LIST FRRequirements)
     list(APPEND PYTHON_LINK_LIBRARIES "FR::RequirementsManager")
     
     if (BUILD_PQXX_SUPPORT)
@@ -160,7 +180,8 @@ if (NOT EMSCRIPTEN)
     add_executable(CreateTables
       "${CMAKE_CURRENT_SOURCE_DIR}/src/CreateTables.cpp"
     )
-    
+
+    list(APPEND INSTALL_TARGET_LIST CreateTables)
     # Funnily enough don't need requirements manager ndoes for this
     target_link_libraries(CreateTables PUBLIC
       libpqxx::pqxx
@@ -177,14 +198,49 @@ if (NOT EMSCRIPTEN)
     add_executable(RestServer
       "${CMAKE_CURRENT_SOURCE_DIR}/src/RestService.cpp"
     )
+
+    list(APPEND INSTALL_TARGET_LIST RestServer)
     
-    target_link_libraries(RestServer PUBLIC
+    target_link_libraries(RestServer PRIVATE
       FR::RequirementsManager
       libpqxx::pqxx
       PkgConfig::Pistache
       Boost::program_options
     )
   endif()
+
+  # Install Support
+  
+  write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/FRRequirementsManagerConfigVersion.cmake"
+    VERSION "${FRRequirementsManager_VERSION}"
+    COMPATIBILITY AnyNewerVersion
+  )
+
+  configure_package_config_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/Config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/FRRequirementsManagerConfig.cmake"
+    INSTALL_DESTINATION lib/cmake/FRRequirementsManager
+  )
+
+  install(TARGETS ${INSTALL_TARGET_LIST}
+    EXPORT RequirementsManager_export
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    PUBLIC_HEADER DESTINATION include
+  )
+
+  INSTALL(EXPORT RequirementsManager_export
+    FILE RequirementsManagerTargts.cmake
+    NAMESPACE FR::
+    DESTINATION lib/cmake/FRRequirementsManager
+  )
+
+  install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/FRRequirementsManagerConfigVersion.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/FRRequirementsManagerConfig.cmake"
+    DESTINATION lib/cmake/FRRequirementsManager
+  )
 else()
   message(STATUS "Bulding emscripten bindings")
   set(EMSCRIPTEN_LIBRARY_SOURCE
