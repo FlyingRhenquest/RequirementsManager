@@ -85,9 +85,11 @@ namespace fr::RequirementsManager {
       // Default to localhost if there isn't one.
       std::string hostname = host ? host->host() : "localhost";
       ret.append(hostname);
-      ret.append(":");
-      std::string port = host ? host->port().toString() : std::to_string(_port);
-      ret.append(port);
+      if (host && host->port() != 80) {
+        ret.append(":");
+        std::string port = host ? host->port().toString() : std::to_string(_port);
+        ret.append(port);
+      }
       
       return ret;
     }
