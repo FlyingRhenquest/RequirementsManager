@@ -117,6 +117,7 @@ namespace fr::RequirementsManager {
     // returns from the database. This can return an empty pointer
     // if there wasn't one in the database
     std::shared_ptr<Node> graph(const std::string id) {
+      std::cout << "GraphServer (GET) Client requested graph " << id << std::endl;
       std::shared_ptr<Node> ret;
       // Threadpool needs a shared_ptr. It shouldn't be too time
       // consuming to just allocate one on the heap per-request
@@ -170,6 +171,7 @@ namespace fr::RequirementsManager {
      */
 
     void postGraph(std::shared_ptr<Node> graph) {
+      std::cout << "GraphServer (POST)" << std::endl;
       // Set all graph node changesd flags to true right now to force database
       // saves
       if (graph) {
@@ -203,6 +205,7 @@ namespace fr::RequirementsManager {
         // Add CORS headers to allow emscripten fetch to access this data
         // Replace "*" with your domain if you're running this in a wider
         // environment.
+        std::cout << "Client Requested GraphsRoute" << std::endl;
         response.headers().add<Pistache::Http::Header::AccessControlAllowOrigin>("*");
         response.headers().add<Pistache::Http::Header::AccessControlAllowMethods>("GET, POST, OPTIONS");
         response.headers().add<Pistache::Http::Header::AccessControlAllowHeaders>("Content-Type, Authorization");
@@ -227,6 +230,7 @@ namespace fr::RequirementsManager {
           response.headers().add<Pistache::Http::Header::AccessControlAllowMethods>("GET, POST, OPTIONS");
           response.headers().add<Pistache::Http::Header::AccessControlAllowHeaders>("Content-Type, Authorization");
           if (!node) {
+            std::cout << "Node " << id << " not found" << std::endl;
             error(response, "ID not found", Pistache::Http::Code::Not_Found);
           } else {                                        
             std::stringstream stream;
@@ -242,6 +246,7 @@ namespace fr::RequirementsManager {
 
       auto optionsRoute = [&](const Pistache::Rest::Request &request,
                               Pistache::Http::ResponseWriter response) {
+        std::cout << "GraphServer: Client requested options" << std::endl;
         response.headers().add<Pistache::Http::Header::AccessControlAllowOrigin>("*");
         response.headers().add<Pistache::Http::Header::AccessControlAllowMethods>("GET, POST, OPTIONS");
         response.headers().add<Pistache::Http::Header::AccessControlAllowHeaders>("Content-Type, Authorization");
@@ -270,11 +275,17 @@ namespace fr::RequirementsManager {
         response.headers().add<Pistache::Http::Header::AccessControlAllowOrigin>("*");
         response.headers().add<Pistache::Http::Header::AccessControlAllowMethods>("GET, POST, OPTIONS");
         response.headers().add<Pistache::Http::Header::AccessControlAllowHeaders>("Content-Type, Authorization");
-        
-        std::stringstream stream(body);
-        {
-          cereal::JSONInputArchive archive(stream);
-          archive(node);
+
+        try {
+          std::stringstream stream(body);
+          {
+            cereal::JSONInputArchive archive(stream);
+            archive(node);
+          }
+        } catch (std::exception &e) {
+          std::cout << "POST deserialization exception caught: " << e.what() << std::endl;
+          response.send(Pistache::Http::Code::Bad_Request, "Error deserializing graph");
+          return Pistache::Rest::Route::Result::Ok;
         }
         postGraph(node);
         std::cout << "POST Complete" << std::endl;
