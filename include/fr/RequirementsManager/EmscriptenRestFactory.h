@@ -141,6 +141,8 @@ namespace fr::RequirementsManager {
       emscripten_fetch_close(ctx);
     }
 
+    std::string _data;
+
   public:
 
     static EmscriptenGraphNodeFactory& instance() {
@@ -188,9 +190,10 @@ namespace fr::RequirementsManager {
         std::cout << "POST failed: " << e.what() << std::endl;
         return;
       }
-      std::string data = stream.str();
-      attr.requestData = data.c_str();
-      attr.requestDataSize = data.size();
+      _data = stream.str();
+
+      attr.requestData = _data.c_str();
+      attr.requestDataSize = _data.size();
       emscripten_fetch(&attr, url.c_str());
     }
   };
