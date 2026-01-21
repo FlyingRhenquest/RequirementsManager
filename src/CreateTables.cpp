@@ -177,6 +177,25 @@ int main(int argc, char *argv[]) {
                          "name                VARCHAR(200),"
                          "description         TEXT);");
 
+  std::string todoTable("CREATE TABLE IF NOT EXISTS todo ("
+                        "id                   uuid PRIMARY KEY,"
+                        "description          TEXT,"
+                        "created              BIGINT,"
+                        "due                  BIGINT,"
+                        "completed            BOOLEAN NOT NULL DEFAULT FALSE,"
+                        "date_completed       BIGINT,"
+                        "spawned_from         uuid);");
+  
+  std::string recurringTodoTable("CREATE TABLE IF NOT EXISTS recurring_todo ("
+                                 "id                 uuid PRIMARY KEY,"
+                                 "description        TEXT,"
+                                 "created            BIGINT,"
+                                 "recurring_interval BIGINT,"
+                                 "seconds_flag       BOOLEAN NOT NULL DEFAULT FALSE,"
+                                 "dom_flag           BOOLEAN NOT NULL DEFAULT FALSE,"
+                                 "doy_flag           BOOLEAN NOT NULL DEFAULT FALSE);");
+
+
   std::cout << "Checking to see if association_type exists...";
   pqxx::result res = transaction.exec(
       "SELECT EXISTS(SELECT 1 FROM pg_type AS t JOIN pg_namespace AS n ON "
@@ -269,7 +288,14 @@ int main(int argc, char *argv[]) {
   std::cout << " Done" << std::endl;
   std::cout << "Creating Event Table...";
   transaction.exec(eventTable);
-
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating todo table...";
+  transaction.exec(todoTable);
+  std::cout << " Done" << std::endl;
+  std::cout << "Creating recurring todo table...";
+  transaction.exec(recurringTodoTable);
+  std::cout << " Done" << std::endl;
+  
   std::cout << " Done" << std::endl;
   std::cout << "Comitting transactions...";
   transaction.commit();

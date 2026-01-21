@@ -24,5 +24,6 @@
 #include <fr/RequirementsManager/Project.h>
 #include <fr/RequirementsManager/Requirement.h>
 #include <fr/RequirementsManager/Story.h>
+#include <fr/RequirementsManager/Todo.h>
 #include <fr/RequirementsManager/UseCase.h>
 #include <fr/RequirementsManager/UtilityNodes.h>

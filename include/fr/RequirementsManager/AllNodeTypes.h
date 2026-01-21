@@ -46,11 +46,14 @@ namespace fr::RequirementsManager {
   class InternationalAddress;
   class USAddress;
   class Event;
+  class RecurringTodo;
+  class Todo;
 
   using AllNodeTypes =
     fr::types::Typelist<GraphNode, Organization, Product, Project, Requirement,
                         Story, UseCase, Text, Completed, KeyValue, TimeEstimate,
                         Effort, Role, Actor, Goal, Purpose, Person, EmailAddress,
-                        PhoneNumber, InternationalAddress, USAddress, Event>;
+                        PhoneNumber, InternationalAddress, USAddress, Event,
+                        RecurringTodo, Todo>;
   
 }

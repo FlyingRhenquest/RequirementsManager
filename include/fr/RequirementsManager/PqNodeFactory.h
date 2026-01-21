@@ -20,6 +20,7 @@
 #include <cstring>
 #include <format>
 #include <fr/RequirementsManager.h>
+#include <fr/RequirementsManager/AllNodeTypes.h>
 #include <fr/RequirementsManager/PqDatabaseSpecific.h>
 #include <fr/RequirementsManager/Node.h>
 #include <fr/RequirementsManager/TaskNode.h>
@@ -50,12 +51,7 @@ namespace fr::RequirementsManager {
    */
   
   class NodeAllocator {
-    using NodeList =
-      fr::types::Typelist<GraphNode, Organization, Product, Project, Requirement, Story, UseCase,
-                          Text, Completed, KeyValue, TimeEstimate, Effort, Role,
-                          Actor, Goal, Purpose, Person, EmailAddress, PhoneNumber,
-                          InternationalAddress, USAddress, Event>;
-
+    using NodeList = AllNodeTypes;
 
     /**
      * Handles the actual node lookup from public get entrypoint
@@ -110,11 +106,7 @@ namespace fr::RequirementsManager {
 
   template <typename WorkerThreadType>
   class PqNodeLoader : public TaskNode<WorkerThreadType> {
-    using NodeList =
-      fr::types::Typelist<GraphNode, Organization, Product, Project, Requirement, Story, UseCase,
-                          Text, Completed, KeyValue, TimeEstimate, Effort, Role,
-                          Actor, Goal, Purpose, Person, EmailAddress, PhoneNumber,
-                          InternationalAddress, USAddress, Event>;
+    using NodeList = AllNodeTypes;
     pqxx::connection _connection;
     pqxx::work _transaction;
 

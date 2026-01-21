@@ -35,6 +35,8 @@ namespace fr::RequirementsManager {
     using Parent = CommitableNode;
     using PtrType = std::shared_ptr<Type>;
 
+    virtual ~UseCase() {}
+    
     std::string getNodeType() const override {
       return "UseCase";
     }

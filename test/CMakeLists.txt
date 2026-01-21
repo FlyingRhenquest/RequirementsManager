@@ -22,6 +22,7 @@ set(TEST_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/OrganizationTest.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/NodeFactoryTests.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/ProjectTest.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/TodoTest.cpp
 )
 
 add_executable(RequirementsManagerTests

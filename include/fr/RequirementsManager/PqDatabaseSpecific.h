@@ -1685,6 +1685,181 @@ namespace fr::RequirementsManager::database {
 
   };
 
+  /********************************************************************************/
+  // RecurringTodo-specific type
+  template <>
+  struct DbSpecificData<RecurringTodo> : public DbSpecificData<Node> {
+    using Type = RecurringTodo;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+
+    static constexpr char name[] = "RecurringTodo";
+    static constexpr char tableName[] = "recurring_todo";
+
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
+      std::string cmd =
+        std::format("INSERT INTO {} (id, description, created, recurring_interval,"
+                    "seconds_flag, dom_flag, doy_flag) VALUES ($1, $2, $3, $4, $5, $6, $7);",
+                    tableName);
+      pqxx::params p{
+        node->idString(),
+        node->getDescription(),
+        node->getCreated(),
+        node->getRecurringInterval(),
+        node->getSecondsFlag(),
+        node->getDayOfMonthFlag(),
+        node->getDayOfYearFlag()
+      };
+      transaction.exec(cmd, p);
+      transaction.commit();
+    }
+
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
+      std::string cmd =
+        std::format("UPDATE {} SET "
+                    "description = $2,"
+                    "created = $3,"
+                    "recurring_interval = $4,"
+                    "seconds_flag = $5,"
+                    "dom_flag = $6,"
+                    "doy_flag = $7 "
+                    "WHERE id = $1", tableName);
+      pqxx::params p{
+        node->idString(),
+        node->getDescription(),
+        node->getCreated(),
+        node->getRecurringInterval(),
+        node->getSecondsFlag(),
+        node->getDayOfMonthFlag(),
+        node->getDayOfYearFlag()
+      };
+      transaction.exec(cmd, p);
+      transaction.commit();
+    }
+
+    bool load(PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("select * from {} WHERE id = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+      if (res.size() > 0) {
+        ret = true;
+      }
+      for (auto const &row : res) {
+        node->setDescription(row["description"].as<std::string>());
+        node->setCreated(row["created"].as<time_t>());
+        node->setRecurringInterval(row["recurring_interval"].as<time_t>());
+        node->setSecondsFlag(row["seconds_flag"].as<bool>());
+        node->setDayOfMonthFlag(row["dom_flag"].as<bool>());
+        node->setDayOfYearFlag(row["doy_flag"].as<bool>());
+      }      
+      return ret;
+    }
+
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+      transaction.commit();
+    }
+    
+  };
+  
+  /********************************************************************************/
+  // Todo-specific type
+
+  template <>
+  struct DbSpecificData<Todo> : public DbSpecificData<Node> {
+    using Type = Todo;
+    using PtrType = Type::PtrType;
+    using Parent = DbSpecificData<Node>;
+
+    static constexpr char name[] = "Todo";
+    static constexpr char tableName[] = "todo";
+
+    void insert(PtrType node, pqxx::work& transaction) {
+      Parent::insert(node, transaction);
+      std::string cmd = std::format("INSERT INTO {} (id, description, created,"
+                                    "due, completed, date_completed, spawned_from)"
+                                    "VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                                    tableName);
+      pqxx::params p{
+        node->idString(),
+        node->getDescription(),
+        node->getCreated(),
+        node->getDue(),
+        node->getCompleted(),
+        node->getDateCompleted(),
+        boost::uuids::to_string(node->getSpawnedFrom())
+      };
+
+      transaction.exec(cmd, p);
+    }
+
+    void update(PtrType node, pqxx::work& transaction) {
+      Parent::update(node, transaction);
+      std::string cmd =
+        std::format("update {} SET "
+                    "description = $2,"
+                    "created = $3,"
+                    "due = $4,"
+                    "completed = $5,"
+                    "date_completed = $6,"
+                    "spawned_from = $7 "
+                    "WHERE id = $1", tableName);
+      pqxx::params p{
+        node->idString(),
+        node->getDescription(),
+        node->getCreated(),
+        node->getDue(),
+        node->getCompleted(),
+        node->getDateCompleted(),
+        boost::uuids::to_string(node->getSpawnedFrom())
+      };
+      transaction.exec(cmd, p);
+    }
+
+    bool load(PtrType node, pqxx::work& transaction) {
+      bool ret = false;
+      std::string cmd = std::format("SELECT * from {} WHERE id = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      pqxx::result res = transaction.exec(cmd, p);
+      if (res.size() > 0) {
+        ret = true;
+      }
+      for (auto const &row : res) {
+        node->setDescription(row["description"].as<std::string>());
+        node->setCreated(row["created"].as<time_t>());
+        node->setDue(row["due"].as<time_t>());
+        node->setCompleted(row["completed"].as<bool>());
+        node->setCompleted(row["date_completed"].as<time_t>());
+        boost::uuids::string_generator generator;
+        std::string uuid_str = row["spawned_from"].as<std::string>();
+        node->setSpawnedFrom(generator(uuid_str));
+      }
+      return ret;
+    }
+
+    void remove(PtrType node, pqxx::work& transaction) {
+      Parent::remove(node, transaction);
+      std::string cmd = std::format("DELETE from {} WHERE ID = $1", tableName);
+      pqxx::params p{
+        node->idString()
+      };
+      transaction.exec(cmd, p);
+    }
+    
+  };
+  
   /**
    * nodeInTable function checks a specific table (defined in tableName in all
    * the above specialziations) and checks to see if a given node is in the
