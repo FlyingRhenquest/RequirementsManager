@@ -40,7 +40,7 @@ if (NOT Boost_FOUND)
     PREFIX "${BOOST_EXTERNAL_PREFIX}"
     BUILD_IN_SOURCE TRUE
     CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=<INSTALL_DIR>
-    BUILD_COMMAND "./b2" "${BOOST_EMSCRIPTEN_TOOLSET}" "variant=release" "link=static" "--with-uuid" "--build-dir=${CMAKE_CURRENT_BINARY_DIR}/${BOOST_EXTERNAL_BUILD}" --prefix=<INSTALL_DIR> install
+    BUILD_COMMAND "./b2" "${BOOST_EMSCRIPTEN_TOOLSET}" "variant=release" "link=static" "--build-dir=${CMAKE_CURRENT_BINARY_DIR}/${BOOST_EXTERNAL_BUILD}" --prefix=<INSTALL_DIR> install
      INSTALL_COMMAND ""       
   )
 
